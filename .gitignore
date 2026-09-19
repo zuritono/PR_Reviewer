@@ -1,0 +1,15 @@
+# Build output
+bin/
+obj/
+
+# Local secrets - never commit the real config, only config.json.template
+config.json
+
+# IDE
+.vs/
+.idea/
+*.user
+
+# OS
+.DS_Store
+Thumbs.db

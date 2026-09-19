@@ -1,0 +1,22 @@
+{
+  "_comment": "Copy this file to config.json and fill in your real API key. config.json is git-ignored and must never be committed. If ANTHROPIC_API_KEY is set as an environment variable, it takes precedence over the value here. 'model' defaults to the cheapest option (Haiku) for low-cost local development; check https://docs.claude.com/en/docs/about-claude/models for current model IDs and pricing before switching to a more capable (pricier) model like Sonnet. 'dry_run' defaults to true so a fresh checkout never makes a real (billed) API call by accident — set it to false once you're ready to test against the real API.",
+
+  "anthropic_api_key": "sk-ant-YOUR-KEY-HERE",
+
+  "model": "claude-haiku-4-5",
+  "dry_run": true,
+
+  "max_file_size_chars": 50000,
+  "max_total_content_chars": 150000,
+
+  "text_extensions": [
+    ".cs",
+    ".sql",
+    ".ts",
+    ".js",
+    ".json",
+    ".md",
+    ".yml",
+    ".yaml"
+  ]
+}
