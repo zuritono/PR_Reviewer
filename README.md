@@ -1,6 +1,6 @@
 # PR Reviewer
 
-A console tool that reviews a code diff using Claude and returns a
+A console tool that reviews a code diff using an AI model and returns a
 structured review. Starts small and simple, built to grow into a fully
 functional tool suitable for sharing or handing off to others.
 
@@ -15,10 +15,13 @@ for the v1 scope and the roadmap beyond it.
 
 ## Setup (once implemented)
 
-1. Get an Anthropic API key from https://console.anthropic.com/settings/keys
-   (the API console — a separate credential from a claude.ai chat login).
-   New accounts receive a small amount of free credits automatically, no
-   card required to start.
+1. Pick a provider: **Claude** (Anthropic) or **OpenAI**. Get an API key
+   from whichever you choose:
+   - Claude: https://console.anthropic.com/settings/keys
+   - OpenAI: https://platform.openai.com/api-keys
+
+   Both offer a small amount of free credits on a new account, no card
+   required to start.
 
 2. Configure the key using **one** of the following:
 
@@ -26,37 +29,41 @@ for the v1 scope and the roadmap beyond it.
    ```powershell
    Copy-Item config.json.template config.json
    ```
-   Then open `config.json` and replace the placeholder with your real key.
-   `config.json` is git-ignored — it will never be committed.
+   Open `config.json`, set `"provider"` to `"claude"` or `"openai"`, and
+   fill in the matching key (`anthropic_api_key` or `openai_api_key`).
+   You only need the key for the provider you selected. `config.json` is
+   git-ignored — it will never be committed.
 
    **Option B — environment variable:**
    ```powershell
    $env:ANTHROPIC_API_KEY = "sk-ant-..."
+   # or, if using OpenAI:
+   $env:OPENAI_API_KEY = "sk-..."
    ```
-   This only lasts for the current PowerShell window unless set as a
-   persistent Windows user environment variable. Useful for CI, a
-   container, or anywhere you'd rather not have a key on disk at all.
-
-   If both are present, the **environment variable takes precedence**
-   over `config.json`.
+   Lasts for the current PowerShell window unless set persistently.
+   Useful for CI, a container, or anywhere you'd rather not have a key on
+   disk. The environment variable matching your selected provider takes
+   precedence over `config.json`.
 
    Either way: `config.json.template` is the only config file meant to be
    committed — it holds masked placeholder values so anyone cloning the
    repo can see what's needed without any real secret being exposed.
 
-3. (Optional) Choose a model. `config.json` defaults to `claude-haiku-4-5`
-   — the cheapest option, good for verifying the tool works before
-   spending more on review quality. Change the `model` field to a more
-   capable model (e.g. a current Sonnet model — check
-   https://docs.claude.com/en/docs/about-claude/models for current IDs
-   and pricing) once you're ready to rely on the actual reviews.
+3. Choose a model to match your provider. `config.json` defaults to
+   `claude-haiku-4-5-20251001` (cheapest Claude option). If you set
+   `"provider": "openai"`, change `"model"` to an OpenAI model such as
+   `gpt-5.6-luna`. See the `_model_options` comment in
+   `config.json.template` for current choices, or check
+   https://docs.claude.com/en/docs/about-claude/models /
+   https://developers.openai.com/api/docs/models directly — model IDs
+   change over time.
 
 ## Testing without API costs
 
 `config.json` includes `"dry_run": true` **by default**. While it's
-true, the tool never calls the Claude API at all — it prints a fixed
-placeholder review instead, so a fresh checkout can never rack up a bill
-by accident before you've even looked at the config.
+true, the tool never calls any AI provider's API at all — it prints a
+fixed placeholder review instead, so a fresh checkout can never rack up a
+bill by accident before you've even looked at the config.
 
 ```powershell
 dotnet run -- sample-diff.txt
@@ -83,13 +90,15 @@ hand.
 `review_guidelines.md`, once added, will be loaded automatically and
 appended to every review prompt — edit it freely, no rebuild required.
 
-Non-secret settings (model, dry-run mode, max diff size, which file
-extensions to include) live in `config.json` alongside the key — see
-`config.json.template` for the full set.
+Non-secret settings (provider, model, dry-run mode, max diff size, which
+file extensions to include) live in `config.json` alongside the key —
+see `config.json.template` for the full set.
 
 ## Project structure
 
 See `docs/DESIGN.md` for the full architecture. In short: an
 `IDiffSource` abstraction separates "where the diff comes from" from "how
-it gets reviewed," so a GitHub-backed source can be added later without
-touching the review logic.
+it gets reviewed," and an `IReviewGenerator` abstraction separates "which
+AI provider generates the review" from everything else — so a GitHub
+diff source, or a different AI provider, can be added later without
+touching unrelated code.

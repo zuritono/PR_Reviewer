@@ -26,10 +26,8 @@ not a one-off script that gets rewritten later to do that.
   without a rebuild.
 - Make the model configurable, defaulting to the cheapest option, so
   cost is a deliberate choice rather than a hardcoded constant.
-- Support a `--dry-run` mode that exercises the full pipeline (diff
-  loading, guidelines loading, config loading, output formatting)
-  without calling the API at all, for zero-cost local testing during
-  development.
+- Default to a safe, zero-cost `dry_run` mode so a fresh checkout can
+  never make a real (billed) API call by accident.
 - Structure the code so later milestones (GitHub integration, config
   management, packaging) are additions, not rewrites.
 
@@ -46,7 +44,7 @@ project as a whole:
   text; machine-readable output is a real future requirement once
   something else needs to consume the review programmatically.
 - Retry/backoff on API failures, rate limiting, and cost controls beyond
-  the model default and `--dry-run` — need to exist before this is used
+  the model default and `dry_run` — need to exist before this is used
   against real traffic, deferred only because v1 is single-diff,
   on-demand, manually invoked.
 - Packaging/distribution (e.g. as a `dotnet tool`) and versioning — real
@@ -70,7 +68,8 @@ Three responsibilities, kept separate so each can change independently:
 3. **How the review is generated** — a single component that builds the
    prompt (diff + guidelines) and calls the Claude API, independent of
    where the diff came from or how the result will be used. Takes the
-   model as a parameter (from config) rather than a hardcoded constant.
+   model as a parameter (from config) rather than a hardcoded constant,
+   and checks `dry_run` before making any network call at all.
 
 ### Data flow
 
@@ -84,7 +83,7 @@ IDiffSource.GetDiffAsync()
 prompt = diff + review_guidelines.md (if present)
         │
         ▼
---dry-run? ──yes──▶ fixed placeholder review (no API call, no cost)
+config.dry_run == true? ──yes──▶ fixed placeholder review (no API call, no cost)
         │no
         ▼
 Claude API (Messages endpoint, model from config)
@@ -128,11 +127,16 @@ an accident of whatever was typed in at the time, not a decision. Reading
 visible, deliberate setting, with the option to switch to a more capable
 (pricier) model once review quality matters more than iteration speed.
 
-**`--dry-run` is a CLI flag, not a persistent config setting.** A
-zero-cost mode is only useful for development/testing if it's obvious
-when it's active. A flag typed per-run makes that explicit; a
-`"dry_run": true` sitting in `config.json` is the kind of thing that gets
-forgotten about, left on, and silently stops producing real reviews.
+**`dry_run` is a config setting, defaulting to `true` — not a CLI flag.**
+Originally considered as a CLI flag on the reasoning that a persistent
+config setting could be left on and forgotten. Settled on config instead,
+for the opposite reason: defaulting `dry_run` to `true` means a fresh
+checkout, or a config file you haven't looked at in a while, can *never*
+make a real billed API call by accident — the failure mode of "forgot
+dry_run was on" is self-revealing (you keep getting placeholder text
+instead of a real review), which is a safer default than "forgot to add
+--dry-run and got charged without noticing." Turning real reviews on is
+now the deliberate action, not turning them off.
 
 **Interface-first for the diff source and, eventually, for output.**
 Slight extra structure up front, in exchange for later milestones being
@@ -158,17 +162,17 @@ touching source code.
   ever in the git-ignored `config.json` or an environment variable.
 - Before this is used against a real team's PRs: rate limiting and a
   cost ceiling on API usage, since an unbounded loop or a misbehaving
-  caller could run up real API costs. `--dry-run` and a cheap default
-  model address dev-time cost; production-scale cost control is still a
-  v3+ concern.
+  caller could run up real API costs. `dry_run` defaulting to `true` and
+  a cheap default model address dev-time cost; production-scale cost
+  control is still a v3+ concern.
 
 ## Roadmap
 
 **v1 — current milestone.** Local diff file in, review printed to
 console. Single implementation of `IDiffSource`. Config via
-`config.json` (from `config.json.template`) with env-var override and a
-configurable model (default: cheapest). `--dry-run` for zero-cost
-testing. Manually invoked.
+`config.json` (from `config.json.template`) with env-var override, a
+configurable model (default: cheapest), and `dry_run` defaulting to
+`true` for zero-cost-by-default testing. Manually invoked.
 
 **v2 — GitHub integration.** `GitHubPrDiffSource` fetches a diff
 directly from a PR URL. The tool can post the review back as a PR

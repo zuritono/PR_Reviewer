@@ -1,9 +1,15 @@
 {
-  "_comment": "Copy this file to config.json and fill in your real API key. config.json is git-ignored and must never be committed. If ANTHROPIC_API_KEY is set as an environment variable, it takes precedence over the value here. 'model' defaults to the cheapest option (Haiku) for low-cost local development; check https://docs.claude.com/en/docs/about-claude/models for current model IDs and pricing before switching to a more capable (pricier) model like Sonnet. 'dry_run' defaults to true so a fresh checkout never makes a real (billed) API call by accident — set it to false once you're ready to test against the real API.",
+  "_comment": "Copy this file to config.json and fill in your real API key(s). config.json is git-ignored and must never be committed. Environment variables (ANTHROPIC_API_KEY / OPENAI_API_KEY) take precedence over the matching value here. 'dry_run' defaults to true so a fresh checkout never makes a real (billed) API call by accident — set it to false once you're ready to test against the real API.",
+
+  "provider": "claude",
+  "_provider_options": "claude | openai — selects which IReviewGenerator implementation is used. Only the API key matching the selected provider needs a real value; the other can stay as the placeholder.",
 
   "anthropic_api_key": "sk-ant-YOUR-KEY-HERE",
+  "openai_api_key": "sk-YOUR-KEY-HERE",
 
-  "model": "claude-haiku-4-5",
+  "model": "claude-haiku-4-5-20251001",
+  "_model_options": "Claude (provider=claude): claude-haiku-4-5-20251001 (cheapest/fastest), claude-sonnet-5 (default for real reviews), claude-opus-5, claude-fable-5-1. OpenAI (provider=openai): gpt-5.6-luna (cheapest). Check https://docs.claude.com/en/docs/about-claude/models and https://developers.openai.com/api/docs/models for current lists — model IDs change over time.",
+
   "dry_run": true,
 
   "max_file_size_chars": 50000,
