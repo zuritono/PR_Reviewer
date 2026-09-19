@@ -15,13 +15,19 @@ for the v1 scope and the roadmap beyond it.
 
 ## Setup (once implemented)
 
-1. Pick a provider: **Claude** (Anthropic) or **OpenAI**. Get an API key
-   from whichever you choose:
+1. Pick a provider: **Claude** (Anthropic), **OpenAI**, or **Gemini**
+   (Google). Get an API key from whichever you choose:
    - Claude: https://console.anthropic.com/settings/keys
    - OpenAI: https://platform.openai.com/api-keys
+   - Gemini: https://aistudio.google.com/apikey
 
-   Both offer a small amount of free credits on a new account, no card
-   required to start.
+   Claude and OpenAI offer a small amount of free credits on a new
+   account, no card required to start. Gemini has an ongoing free tier
+   for several models through Google AI Studio (free input/output
+   tokens, rate-limited) — worth trying first if you want to test
+   real reviews at zero cost; check
+   https://ai.google.dev/gemini-api/docs/pricing for current details,
+   since free-tier terms and included models change over time.
 
 2. Configure the key using **one** of the following:
 
@@ -29,16 +35,19 @@ for the v1 scope and the roadmap beyond it.
    ```powershell
    Copy-Item config.json.template config.json
    ```
-   Open `config.json`, set `"provider"` to `"claude"` or `"openai"`, and
-   fill in the matching key (`anthropic_api_key` or `openai_api_key`).
-   You only need the key for the provider you selected. `config.json` is
-   git-ignored — it will never be committed.
+   Open `config.json`, set `"provider"` to `"claude"`, `"openai"`, or
+   `"gemini"`, and fill in the matching key (`anthropic_api_key`,
+   `openai_api_key`, or `gemini_api_key`). You only need the key for the
+   provider you selected. `config.json` is git-ignored — it will never
+   be committed.
 
    **Option B — environment variable:**
    ```powershell
    $env:ANTHROPIC_API_KEY = "sk-ant-..."
    # or, if using OpenAI:
    $env:OPENAI_API_KEY = "sk-..."
+   # or, if using Gemini:
+   $env:GEMINI_API_KEY = "..."
    ```
    Lasts for the current PowerShell window unless set persistently.
    Useful for CI, a container, or anywhere you'd rather not have a key on
@@ -52,11 +61,17 @@ for the v1 scope and the roadmap beyond it.
 3. Choose a model to match your provider. `config.json` defaults to
    `claude-haiku-4-5-20251001` (cheapest Claude option). If you set
    `"provider": "openai"`, change `"model"` to an OpenAI model such as
-   `gpt-5.6-luna`. See the `_model_options` comment in
+   `gpt-5.6-luna`; if you set `"provider": "gemini"`, use a Gemini model
+   such as `gemini-3.5-flash-lite`. See the `_model_options` comment in
    `config.json.template` for current choices, or check
-   https://docs.claude.com/en/docs/about-claude/models /
-   https://developers.openai.com/api/docs/models directly — model IDs
+   https://docs.claude.com/en/docs/about-claude/models,
+   https://developers.openai.com/api/docs/models, and
+   https://ai.google.dev/gemini-api/docs/models directly — model IDs
    change over time.
+
+   A fourth provider, a local LLM (e.g. via Ollama), is on the roadmap
+   but not implemented yet — see `docs/DESIGN.md` for why it's deferred
+   rather than shipped alongside these three.
 
 ## Testing without API costs
 
@@ -98,7 +113,8 @@ see `config.json.template` for the full set.
 
 See `docs/DESIGN.md` for the full architecture. In short: an
 `IDiffSource` abstraction separates "where the diff comes from" from "how
-it gets reviewed," and an `IReviewGenerator` abstraction separates "which
-AI provider generates the review" from everything else — so a GitHub
-diff source, or a different AI provider, can be added later without
-touching unrelated code.
+it gets reviewed," and an `ICodeReviewer` abstraction separates "which AI
+provider generates the review" from everything else — so a GitHub diff
+source, or a different AI provider, can be added later without touching
+unrelated code. Reviews come back as a structured `CodeReview` (summary,
+findings, verdict), not raw text.
