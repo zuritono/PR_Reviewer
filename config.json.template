@@ -13,6 +13,10 @@
 
   "dry_run": true,
 
+  "min_severity": "Suggestion",
+  "max_findings": 10,
+  "_review_output_options": "Applied in code after the model responds, so they hold whatever the model returns. min_severity: Info | Suggestion | Warning | Critical — findings below this are dropped (default Suggestion hides Info-level remarks). max_findings: keep at most this many, most severe first. The verdict is recomputed from the findings that remain. Writing style (short, plain, human-sounding) is set in review_guidelines.md.",
+
   "max_file_size_chars": 50000,
   "max_total_content_chars": 150000,
 

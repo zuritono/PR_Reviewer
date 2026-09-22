@@ -25,6 +25,10 @@ not a one-off script that gets rewritten later to do that.
   verdict), printed to the console in a readable form.
 - Let the review criteria be customized via an external guidelines file,
   without a rebuild.
+- Keep reviews short and human-sounding: a few plain, one- or
+  two-sentence comments that read like a teammate wrote them, not an
+  AI-generated report. Enforced in three layers (prompt, output schema,
+  and post-processing in code) — see *Key decisions*.
 - Abstract the AI provider behind an `ICodeReviewer` interface, with
   three implementations — Claude, OpenAI, and Gemini — selectable via
   config, wired through a real DI container
@@ -67,16 +71,18 @@ project as a whole:
 
 ## Architecture
 
-Four responsibilities, kept separate so each can change independently:
+Five responsibilities, kept separate so each can change independently:
 
 1. **Where the diff comes from** — abstracted behind an `IDiffSource`
    interface. v1 ships one implementation, `LocalFileDiffSource`, which
    reads a diff from a local file. A future `GitHubPrDiffSource` would
    fetch a diff directly from the GitHub REST API given a PR URL.
 
-2. **What the review should look for** — an optional
-   `review_guidelines.md` file, loaded at run time and combined with the
-   diff into the final prompt by `IPromptBuilder`. Editable without
+2. **What the review should look for, and how it should read** — an
+   optional `review_guidelines.md` file, loaded at run time and combined
+   with the diff into the final prompt by `IPromptBuilder`. It holds
+   both the review criteria and the writing style (short, plain, no
+   preamble, with example comments showing the tone). Editable without
    recompiling, so the review criteria can be tuned by anyone using the
    tool. `IPromptBuilder` is injected into every `ICodeReviewer`
    implementation via its constructor, so the "diff + guidelines → one
@@ -113,6 +119,14 @@ Four responsibilities, kept separate so each can change independently:
    public enum ReviewVerdict { Approve, ApproveWithComments, RequestChanges }
    ```
 
+   The JSON schema each reviewer sends with its request carries a
+   `description` on every field — e.g. `summary`: "one sentence",
+   `message`: "one or two short sentences, plain text, no markdown" — so
+   the length and style rules travel with the schema itself, not only in
+   the prompt. Field descriptions are used rather than hard schema limits
+   (`maxLength` and similar), since support for those varies between
+   providers and a too-long answer should be trimmed, not rejected.
+
    If a provider's response doesn't parse as valid structured output,
    the reviewer falls back to a single `Warning`-severity finding
    carrying the raw text, rather than throwing — a malformed response
@@ -120,7 +134,18 @@ Four responsibilities, kept separate so each can change independently:
    is the main reason a local LLM provider is deferred rather than
    shipped untested — smaller local models are the likeliest to hit it.)
 
-4. **How the pieces get assembled** — a composition root in `Program.cs`
+4. **What actually gets shown** — the `CodeReview` coming back from a
+   provider is not printed as-is. A `ReviewFilter` step applies rules in
+   code that the model can't talk its way around: drop findings below
+   `min_severity`, keep at most `max_findings` (most severe first), and
+   recompute the verdict from the findings that remain so the verdict
+   and the visible findings always agree. A console printer then renders
+   the result in a fixed, compact format — one line per finding
+   (`file:line — message`), then the verdict — so the layout is decided
+   by this tool, never by the model. Both `min_severity` and
+   `max_findings` live in `config.json`.
+
+5. **How the pieces get assembled** — a composition root in `Program.cs`
    using `Microsoft.Extensions.DependencyInjection`, the same DI
    container ASP.NET Core uses. It reads `config.json`'s `provider`
    field and registers the matching `ICodeReviewer` implementation
@@ -137,8 +162,8 @@ diff (local file today, GitHub PR later)
 IDiffSource.GetDiffAsync()
         │
         ▼
-config.dry_run == true? ──yes──▶ fixed placeholder CodeReview (no API call, no cost)
-        │no
+config.dry_run == true? ──yes──▶ fixed placeholder CodeReview (no API call,
+        │no                        no cost) ──▶ straight to ReviewFilter
         ▼
 ICodeReviewer.ReviewAsync(diff)
    ├─ IPromptBuilder.BuildPrompt(diff)  →  diff + review_guidelines.md combined
@@ -148,8 +173,16 @@ ICodeReviewer.ReviewAsync(diff)
       if the response doesn't parse)
         │
         ▼
-CodeReview -> printed to console (later: posted back to GitHub)
+ReviewFilter
+   (min_severity, max_findings, verdict recomputed from what's left)
+        │
+        ▼
+CodeReview -> printed to console in a fixed compact format
+              (later: posted back to GitHub)
 ```
+
+The dry-run placeholder goes through the same filter and printer as a
+real review, so the output path can be checked at zero cost.
 
 ### Why this split
 
@@ -239,6 +272,27 @@ being additive rather than requiring a rewrite of working code.
 "what to review for" concern editable by anyone using the tool, without
 touching source code.
 
+**Concise, human-sounding reviews, enforced in three layers.** AI models
+left to their defaults write long, hedged, report-style reviews ("Great
+work! One thing I noticed…"), which people learn to skim past. The goal
+is the opposite: a few short comments that read like a teammate left
+them. No single layer can guarantee that, so there are three:
+
+1. *Prompt* — `review_guidelines.md` states the style rules and includes
+   example comments. Examples steer tone better than descriptions do.
+   Cheapest to change, but a request, not a guarantee.
+2. *Schema* — field descriptions in each provider's structured-output
+   schema repeat the length rules at the point where the model fills in
+   each field. Still a request, but a harder one to drift from.
+3. *Code* — `ReviewFilter` and the console printer. The only layer that
+   is guaranteed: severity cut-off, a cap on the number of findings, a
+   verdict that matches what's shown, and a fixed layout. This is also
+   what keeps smaller or wordier models (including the future local
+   provider) in line.
+
+Layers 1 and 2 shape what the model writes; layer 3 decides what the
+reader actually sees.
+
 ## Security considerations
 
 - `config.json` (the real one, with your key(s)) must never be
@@ -272,7 +326,9 @@ implementations (each backed by a shared `IPromptBuilder`), resolved via
 a DI container based on `config.provider`. Config via `config.json`
 (from `config.json.template`) with env-var override, a configurable
 model per provider (default: cheapest or free-tier), and `dry_run`
-defaulting to `true`. Manually invoked.
+defaulting to `true`. Concise reviews via `review_guidelines.md`, schema
+field descriptions, and a `ReviewFilter` (`min_severity`,
+`max_findings`) in front of a compact console printer. Manually invoked.
 
 **v2 — GitHub integration and a local LLM provider.**
 `GitHubPrDiffSource` fetches a diff directly from a PR URL. The tool can
@@ -284,8 +340,8 @@ path built in v1.
 
 **v3 — hardening.** Retry/backoff on transient API failures, sensible
 timeouts, structured error messages instead of raw exceptions, basic
-automated tests around the prompt-building, diff-source, and
-review-generator logic, production-scale rate limiting and cost
+automated tests around the prompt-building, diff-source,
+review-generator, and `ReviewFilter` logic, production-scale rate limiting and cost
 ceilings.
 
 **v4 — shareable.** Packaged for easy distribution (e.g. `dotnet tool

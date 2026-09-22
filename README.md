@@ -10,8 +10,10 @@ production-ready one.
 
 ## Status
 
-Design complete. Implementation not yet started — see `docs/DESIGN.md`
-for the v1 scope and the roadmap beyond it.
+Design complete. Implementation in progress: project scaffold and
+domain types (`CodeReview`, `ReviewFinding`, `Severity`,
+`ReviewVerdict`) are in place, nothing runs end to end yet — see
+`docs/DESIGN.md` for the v1 scope and the roadmap beyond it.
 
 ## Setup (once implemented)
 
@@ -102,12 +104,33 @@ hand.
 
 ## Customizing the review
 
-`review_guidelines.md`, once added, will be loaded automatically and
-appended to every review prompt — edit it freely, no rebuild required.
+Reviews are meant to be short and read like a teammate wrote them — a
+few plain one- or two-sentence comments, not an AI-style report. Two
+places control that:
 
-Non-secret settings (provider, model, dry-run mode, max diff size, which
-file extensions to include) live in `config.json` alongside the key —
-see `config.json.template` for the full set.
+- **`review_guidelines.md`** — loaded automatically and added to every
+  review prompt. It sets what to look for, what to skip, and how to
+  write, with example comments showing the tone. Edit it freely, no
+  rebuild required.
+- **`min_severity` and `max_findings` in `config.json`** — applied in
+  code after the model responds, so they hold no matter what the model
+  returns. Findings below `min_severity` are dropped (default:
+  `Suggestion`, which hides `Info` remarks), at most `max_findings` are
+  kept (default: 10, most severe first), and the verdict is recomputed
+  from what's left.
+
+The output format itself is fixed by the tool, one line per finding:
+
+```
+src/UserRepo.cs:42 — This builds the SQL by concatenating userId. Use a parameter instead.
+src/UserRepo.cs:88 — Leftover Console.WriteLine.
+
+Request changes.
+```
+
+Other non-secret settings (provider, model, dry-run mode, max diff size,
+which file extensions to include) live in `config.json` alongside the
+key — see `config.json.template` for the full set.
 
 ## Project structure
 
