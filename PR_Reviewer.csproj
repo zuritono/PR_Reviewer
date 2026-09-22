@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>PrReviewer</RootNamespace>
+    <AssemblyName>PrReviewer</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    Package references are added via `dotnet add package` (see README/commands
+    from Claude) rather than pinned here by hand, so NuGet resolves whatever
+    the current compatible version actually is instead of a guessed number.
+    Expect two packages here shortly: Microsoft.Extensions.DependencyInjection
+    and Microsoft.Extensions.Http.
+  -->
+
+</Project>
