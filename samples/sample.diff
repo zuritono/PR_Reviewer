@@ -1,0 +1,52 @@
+diff --git a/src/Orders/OrderRepository.cs b/src/Orders/OrderRepository.cs
+index 3f1c2a4..8b7d9e1 100644
+--- a/src/Orders/OrderRepository.cs
++++ b/src/Orders/OrderRepository.cs
+@@ -18,6 +18,24 @@ public class OrderRepository : IOrderRepository
+         _connectionString = connectionString;
+     }
+
++    public List<Order> GetOrdersForCustomer(string customerId)
++    {
++        Console.WriteLine("Loading orders for " + customerId);
++
++        var orders = new List<Order>();
++        var connection = new SqlConnection(_connectionString);
++        connection.Open();
++
++        var command = new SqlCommand(
++            "SELECT * FROM dbo.Orders WHERE CustomerId = '" + customerId + "'", connection);
++        var reader = command.ExecuteReader();
++        while (reader.Read())
++        {
++            orders.Add(new Order(reader.GetInt32(0), reader.GetString(1)));
++        }
++        return orders;
++    }
++
+     public Order? GetById(int id)
+     {
+         using var connection = new SqlConnection(_connectionString);
+diff --git a/db/procs/usp_ArchiveOrders.sql b/db/procs/usp_ArchiveOrders.sql
+new file mode 100644
+index 0000000..c4e8a21
+--- /dev/null
++++ b/db/procs/usp_ArchiveOrders.sql
+@@ -0,0 +1,17 @@
++CREATE PROCEDURE dbo.usp_ArchiveOrders
++    @CutoffDate DATETIME
++AS
++BEGIN
++    SELECT * INTO #ToArchive
++    FROM dbo.Orders
++    WHERE OrderDate < @CutoffDate;
++
++    BEGIN TRAN;
++
++    INSERT INTO dbo.OrdersArchive
++    SELECT * FROM #ToArchive;
++
++    DELETE FROM dbo.Orders WHERE OrderDate < @CutoffDate;
++
++    COMMIT;
++END

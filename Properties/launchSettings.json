@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "PrReviewer (sample diff)": {
+      "commandName": "Project",
+      "commandLineArgs": "samples/sample.diff",
+      "workingDirectory": "$(ProjectDir)"
+    }
+  }
+}

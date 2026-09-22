@@ -9,12 +9,16 @@
     <AssemblyName>PrReviewer</AssemblyName>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+  </ItemGroup>
+
   <!--
     Package references are added via `dotnet add package` (see README/commands
     from Claude) rather than pinned here by hand, so NuGet resolves whatever
     the current compatible version actually is instead of a guessed number.
-    Expect two packages here shortly: Microsoft.Extensions.DependencyInjection
-    and Microsoft.Extensions.Http.
+    Microsoft.Extensions.Http joins DependencyInjection once the first real
+    provider (HTTP calls) lands.
   -->
 
 </Project>
