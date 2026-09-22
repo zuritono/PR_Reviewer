@@ -22,9 +22,14 @@
 
   "text_extensions": [
     ".cs",
+    ".csproj",
+    ".props",
+    ".config",
     ".sql",
     ".ts",
+    ".tsx",
     ".js",
+    ".jsx",
     ".json",
     ".md",
     ".yml",

@@ -104,7 +104,11 @@ Five responsibilities, kept separate so each can change independently:
    and `GeminiCodeReviewer` (Gemini API). Each one builds its prompt via
    the injected `IPromptBuilder`, calls its own API using its own
    provider's native structured-output/JSON mode, and parses the result
-   into a `CodeReview`:
+   into a `CodeReview`.
+
+   A fourth implementation, `DryRunCodeReviewer`, makes no API call at
+   all and returns a fixed placeholder review. It's what `dry_run = true`
+   selects (see *Key decisions*).
 
    ```csharp
    public record CodeReview(
@@ -147,11 +151,14 @@ Five responsibilities, kept separate so each can change independently:
 
 5. **How the pieces get assembled** — a composition root in `Program.cs`
    using `Microsoft.Extensions.DependencyInjection`, the same DI
-   container ASP.NET Core uses. It reads `config.json`'s `provider`
+   container ASP.NET Core uses. If `dry_run` is true it registers
+   `DryRunCodeReviewer`; otherwise it reads `config.json`'s `provider`
    field and registers the matching `ICodeReviewer` implementation
-   (each constructed with `IPromptBuilder` injected in turn); nothing
-   downstream of that registration needs to know or care which provider
-   was chosen.
+   (each constructed with `IPromptBuilder` injected in turn). A
+   `ReviewRunner` receives the diff source, reviewer, filter and printer
+   by constructor injection and runs them in order; nothing downstream
+   of the registration needs to know or care which reviewer was chosen,
+   dry run included.
 
 ### Data flow
 
@@ -162,15 +169,16 @@ diff (local file today, GitHub PR later)
 IDiffSource.GetDiffAsync()
         │
         ▼
-config.dry_run == true? ──yes──▶ fixed placeholder CodeReview (no API call,
-        │no                        no cost) ──▶ straight to ReviewFilter
-        ▼
-ICodeReviewer.ReviewAsync(diff)
-   ├─ IPromptBuilder.BuildPrompt(diff)  →  diff + review_guidelines.md combined
-   ├─ call the provider's API (DI resolves Claude / OpenAI / Gemini
-   │  based on config.provider — calling code is identical either way)
-   └─ parse response into CodeReview (fallback to a raw-text finding
-      if the response doesn't parse)
+ICodeReviewer.ReviewAsync(diff)   (DI picked the implementation at startup)
+   │
+   ├─ dry_run = true → DryRunCodeReviewer
+   │     fixed placeholder CodeReview, no API call, no cost
+   │
+   └─ dry_run = false → Claude / OpenAI / Gemini, based on config.provider
+         ├─ IPromptBuilder.BuildPrompt(diff) → diff + review_guidelines.md
+         ├─ call the provider's API
+         └─ parse response into CodeReview (fallback to a raw-text
+            finding if the response doesn't parse)
         │
         ▼
 ReviewFilter
@@ -182,7 +190,9 @@ CodeReview -> printed to console in a fixed compact format
 ```
 
 The dry-run placeholder goes through the same filter and printer as a
-real review, so the output path can be checked at zero cost.
+real review, so the output path can be checked at zero cost. Its
+findings cover every severity, so the effect of `min_severity` and
+`max_findings` is visible in a dry run.
 
 ### Why this split
 
@@ -261,7 +271,17 @@ you haven't looked at in a while, can never make a real billed API call
 by accident — the failure mode of "forgot dry_run was on" is
 self-revealing (you keep getting placeholder text instead of a real
 review), which is safer than a flag you might forget to pass. Turning
-real reviews on is the deliberate action, not turning them off.
+real reviews on is the deliberate action, not turning them off. The
+same applies when `config.json` is missing or has no `dry_run` entry:
+it counts as `true`.
+
+**Dry run is an `ICodeReviewer` implementation, not a branch in the
+pipeline.** An earlier version of this design checked `dry_run` before
+calling the reviewer. Making it `DryRunCodeReviewer`, chosen by the
+composition root like any provider, means the pipeline code has no
+dry-run special case at all, the filter and printer get exercised by
+every dry run, and the interface-swapping the project is meant to
+demonstrate works before any API key exists.
 
 **Interface-first for the diff source, the AI provider, and eventually
 output.** Slight extra structure up front, in exchange for later

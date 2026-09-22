@@ -10,10 +10,11 @@ production-ready one.
 
 ## Status
 
-Design complete. Implementation in progress: project scaffold and
-domain types (`CodeReview`, `ReviewFinding`, `Severity`,
-`ReviewVerdict`) are in place, nothing runs end to end yet — see
-`docs/DESIGN.md` for the v1 scope and the roadmap beyond it.
+Design complete. Implementation in progress: the dry-run pipeline runs
+end to end (diff file → `DryRunCodeReviewer` → filter → console). No
+real AI provider is implemented yet, so `dry_run: false` currently
+stops with a "not implemented yet" message — see `docs/DESIGN.md` for
+the v1 scope and the roadmap beyond it.
 
 ## Setup (once implemented)
 
@@ -80,27 +81,34 @@ domain types (`CodeReview`, `ReviewFinding`, `Severity`,
 `config.json` includes `"dry_run": true` **by default**. While it's
 true, the tool never calls any AI provider's API at all — it prints a
 fixed placeholder review instead, so a fresh checkout can never rack up a
-bill by accident before you've even looked at the config.
+bill by accident before you've even looked at the config. A missing
+`config.json`, or one without a `dry_run` entry, counts as `true` too.
 
 ```powershell
-dotnet run -- sample-diff.txt
+dotnet run -- samples/sample.diff
 # prints a placeholder review — no API call, no cost, dry_run is still true
 ```
+
+The placeholder has one finding of each severity, so you can see
+`min_severity` and `max_findings` at work before going live.
 
 When you're ready to test against the real API, open `config.json` and
 set `"dry_run": false`. If you forget this step, the output stays
 obviously placeholder text rather than failing silently or costing
 anything — you'll notice.
 
-## Usage (once implemented)
+## Usage
 
 ```powershell
 git diff > my-changes.diff
 dotnet run -- my-changes.diff
 ```
 
-A sample diff will be included so you can try it without a real change on
-hand.
+`samples/sample.diff` is a small C# and SQL Server change with a few
+deliberate problems (SQL built by concatenation, a leftover
+`Console.WriteLine`, an undisposed reader, a stored procedure missing
+`SET NOCOUNT ON` / `SET XACT_ABORT ON`), for trying the tool without a
+real change on hand.
 
 ## Customizing the review
 
@@ -119,9 +127,12 @@ places control that:
   kept (default: 10, most severe first), and the verdict is recomputed
   from what's left.
 
-The output format itself is fixed by the tool, one line per finding:
+The output format itself is fixed by the tool: a one-sentence summary,
+one line per finding, then the verdict:
 
 ```
+Adds a customer order lookup and an archiving procedure.
+
 src/UserRepo.cs:42 — This builds the SQL by concatenating userId. Use a parameter instead.
 src/UserRepo.cs:88 — Leftover Console.WriteLine.
 
