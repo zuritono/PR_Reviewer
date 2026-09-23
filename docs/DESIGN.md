@@ -52,8 +52,8 @@ things on the roadmap below, not because they're out of scope for the
 project as a whole:
 
 - Automatic posting of the review anywhere — v1 is console-only output.
-- GitHub integration — the extension point exists (`IDiffSource`), but
-  no implementation ships yet.
+- Posting the review back to GitHub as a PR comment. Reading a PR by
+  URL is already done (pulled forward from v2, see *Architecture*).
 - A local LLM provider (e.g. via Ollama) — `ICodeReviewer` already
   supports it with zero changes to calling code, which is the point of
   the abstraction, but it isn't implemented in v1. Real testing right
@@ -74,9 +74,22 @@ project as a whole:
 Five responsibilities, kept separate so each can change independently:
 
 1. **Where the diff comes from** — abstracted behind an `IDiffSource`
-   interface. v1 ships one implementation, `LocalFileDiffSource`, which
-   reads a diff from a local file. A future `GitHubPrDiffSource` would
-   fetch a diff directly from the GitHub REST API given a PR URL.
+   interface, with two implementations. `LocalFileDiffSource` reads a
+   diff from a local file. `GitHubPrDiffSource` fetches a pull request
+   from the GitHub REST API given its URL
+   (`https://github.com/owner/repo/pull/123`, also accepting the
+   `/files` tab and other forms copied from a browser). Asking the API
+   for the `application/vnd.github.diff` media type returns the whole PR
+   as one unified diff, so the rest of the pipeline can't tell the two
+   sources apart. The composition root picks the source from the
+   command-line argument: anything starting with `http://` or
+   `https://` is a URL (and a URL that isn't a GitHub PR is rejected
+   with a clear message rather than treated as a file name).
+
+   Public repos need no token (GitHub allows 60 unauthenticated requests
+   an hour). An optional `github_token` / `GITHUB_TOKEN` covers private
+   repos and higher limits. Not-found, rate-limit and bad-token
+   responses each get their own one-line message.
 
 2. **What the review should look for, and how it should read** — an
    optional `review_guidelines.md` file, loaded at run time and combined
@@ -198,7 +211,7 @@ Five responsibilities, kept separate so each can change independently:
 ### Data flow
 
 ```
-diff (local file today, GitHub PR later)
+diff (local file, or a GitHub PR URL)
         │
         ▼
 IDiffSource.GetDiffAsync()
@@ -366,8 +379,11 @@ reader actually sees.
   `config.json` or an environment variable. Only the key matching the
   active `provider` needs to be real; the unused ones can stay as
   placeholders.
-- If a GitHub PAT is added later (for `GitHubPrDiffSource` /
-  posting-back), it follows the same pattern.
+- The optional GitHub token follows the same pattern (masked
+  placeholder in the template, `GITHUB_TOKEN` takes precedence). It
+  only needs read access, so a fine-grained token limited to read-only
+  "Pull requests" is enough; posting reviews back later will need write
+  access, which is a reason to keep that feature separate and opt-in.
 - Before this is used against a real team's PRs: rate limiting and a
   cost ceiling on API usage, since an unbounded loop or a misbehaving
   caller could run up real API costs. `dry_run` defaulting to `true` and
@@ -388,9 +404,9 @@ field descriptions, and a `ReviewFilter` (`min_severity`,
 `max_findings`) in front of a compact console printer. Manually invoked.
 
 **v2 — GitHub integration and a local LLM provider.**
-`GitHubPrDiffSource` fetches a diff directly from a PR URL. The tool can
-post the review back as a PR comment. Entry point detects local path vs.
-PR URL and picks the source. `LocalCodeReviewer` adds a fourth
+`GitHubPrDiffSource` fetches a diff directly from a PR URL, with the
+entry point detecting local path vs. PR URL — *done early*. Still to
+come: the tool can post the review back as a PR comment. `LocalCodeReviewer` adds a fourth
 `ICodeReviewer` implementation, pointed at a local server (e.g. Ollama)
 — same interface, no API key, exercising the fallback-on-unparsable-output
 path built in v1.

@@ -11,8 +11,9 @@ production-ready one.
 ## Status
 
 Design complete. Implementation in progress: the pipeline runs end to
-end (diff file → reviewer → filter → console), with a dry-run reviewer
-and **Gemini** as the first real provider. Claude and OpenAI aren't
+end (diff file or GitHub PR link → reviewer → filter → console), with a
+dry-run reviewer and **Gemini** as the first real provider. Claude and
+OpenAI aren't
 implemented yet and stop with a "not implemented yet" message — see
 `docs/DESIGN.md` for the v1 scope and the roadmap beyond it.
 
@@ -116,9 +117,23 @@ anything — you'll notice.
 
 ## Usage
 
-The intended workflow: in the repo you're working on, save the diff,
-review it, read the result in the console, and decide what goes into
-the PR. Nothing is posted anywhere.
+The intended workflow: review a change, read the result in the console,
+and decide what goes into the PR. Nothing is posted anywhere.
+
+**A GitHub pull request**, straight from its link:
+
+```powershell
+prreview https://github.com/owner/repo/pull/123
+```
+
+Links copied from the PR's other tabs (`…/pull/123/files`) work too.
+Public repos need no setup. For private repos, or if you hit GitHub's
+limit of 60 requests an hour, set `github_token` in `config.json` (or
+the `GITHUB_TOKEN` environment variable) to a
+[fine-grained token](https://github.com/settings/personal-access-tokens)
+with read-only "Pull requests" access.
+
+**Local changes**, before there's a PR:
 
 ```powershell
 cd C:\path\to\your\work-repo
