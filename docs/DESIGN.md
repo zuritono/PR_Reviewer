@@ -194,10 +194,24 @@ Five responsibilities, kept separate so each can change independently:
    `min_severity`, keep at most `max_findings` (most severe first), and
    recompute the verdict from the findings that remain so the verdict
    and the visible findings always agree. A console printer then renders
-   the result in a fixed, compact format — one line per finding
-   (`file:line — message`), then the verdict — so the layout is decided
-   by this tool, never by the model. Both `min_severity` and
-   `max_findings` live in `config.json`.
+   the result in a fixed format decided by this tool, never by the
+   model: one block per finding, then the verdict. Each block has
+   `file:line — status` (*Must fix* / *Should fix* / *Optional* /
+   *FYI*, from the severity), a one-sentence message, the line of code
+   the finding points at (`-`), and the suggested fix (`+`) when the
+   model gave one. Both `min_severity` and `max_findings` live in
+   `config.json`.
+
+   The `-` line is looked up in the diff by the tool (via the same
+   `DiffParser` that numbers the lines for the prompt), not copied by
+   the model, so it's always quoted exactly. The fix comes from a
+   `suggestion` field in the schema: the corrected line, an empty string
+   for "delete this line", or null when there's no small, concrete fix,
+   so the model isn't pushed into guessing large rewrites. A fix
+   identical to the current line is dropped. The per-finding shape (one
+   location, one problem, one proposed fix) is also exactly what posting
+   findings as separate GitHub review comments with suggested changes
+   would need, if that's added later.
 
 5. **How the pieces get assembled** — a composition root in `Program.cs`
    using `Microsoft.Extensions.DependencyInjection`, the same DI

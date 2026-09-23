@@ -76,8 +76,8 @@ Do not report:
 ## How to write
 
 - Write like a colleague leaving a quick comment, not like a report.
-- One or two short sentences per finding. Say what is wrong and, when it
-  isn't obvious, what to do instead.
+- One short sentence per finding: what is wrong and why it matters. The
+  fix goes in `suggestion`, not in the message.
 - Plain words. No headings, bullet lists, or markdown inside a message.
 - No preamble, no praise, no sign-off. Don't start with "Great work",
   "Overall", "It looks like", or "Consider".
@@ -91,7 +91,14 @@ Do not report:
 
 - **summary**: one sentence about the change as a whole. No more.
 - **findings**: each with the file, the line (if you can point to one),
-  a severity, and the message.
+  a severity, the message, and a suggestion.
+- **line**: the line the problem is on, so the fix below replaces it.
+  For a problem spread over several lines, the line where it starts.
+- **suggestion**: the corrected code for that line, exactly as it should
+  read, as a reviewer would propose it. No line number, `|`, `+` or `-`.
+  - An empty string if the fix is to delete the line.
+  - Null if there's no small, concrete fix (a design problem, a missing
+    test, a change needed somewhere else). Don't guess at a large fix.
 - **severity**:
   - `Critical`: will break something or is a security hole. Must fix.
   - `Warning`: likely bug or real risk. Should fix.
@@ -116,6 +123,17 @@ Good:
   open."
 - "`SELECT *` here will break if a column is added to `Orders`. List the
   columns."
+
+Message and suggestion together (the message says what's wrong, the
+suggestion is the fixed line):
+
+- message: "SQL built by concatenating `customerId`, open to SQL
+  injection."
+  suggestion: `var command = new SqlCommand("SELECT Id, Total FROM dbo.Orders WHERE CustomerId = @id", connection);`
+- message: "Leftover debug output."
+  suggestion: `""` (delete the line)
+- message: "No test covers the new discount rule."
+  suggestion: null (the fix isn't a change to this line)
 
 Too wordy, don't write like this:
 

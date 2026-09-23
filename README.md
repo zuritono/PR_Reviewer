@@ -192,16 +192,37 @@ places control that:
   from what's left.
 
 The output format itself is fixed by the tool: a one-sentence summary,
-one line per finding, then the verdict:
+one block per finding, then the overall verdict. Each finding is its own
+item, so it can be fixed or discussed separately:
 
 ```
-Adds a customer order lookup and an archiving procedure.
+Removes name sanitization and inverts the success check.
 
-src/UserRepo.cs:42 — This builds the SQL by concatenating userId. Use a parameter instead.
-src/UserRepo.cs:88 — Leftover Console.WriteLine.
+contact.php:156 — Must fix
+  Newlines are no longer stripped from the name, which allows email header injection.
+  - $safe_name  = $name;
+  + $safe_name  = str_replace(["\r", "\n"], '', $name);
+
+script.js:31 — Should fix
+  The check is inverted, so the form resets on failure instead of success.
+  - if (!result.success) {
+  + if (result.success) {
+
+script.js:29 — Optional
+  Leftover debug output.
+  - console.log("form result", result);
+  + (delete this line)
 
 Request changes.
 ```
+
+- **The status** per finding: *Must fix* (critical), *Should fix*
+  (likely bug or real risk), *Optional* (fine to merge without it),
+  *FYI* (hidden by default, see `min_severity`).
+- **The `-` line** is the code the finding points at, taken from the
+  diff by the tool, so it's always quoted exactly.
+- **The `+` line** is the model's suggested fix, shown only when there's
+  a small, concrete one. "(delete this line)" means the fix is removing it.
 
 Other non-secret settings (provider, model, dry-run mode, max diff size,
 which file extensions to include) live in `config.json` alongside the
