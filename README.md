@@ -10,13 +10,16 @@ production-ready one.
 
 ## Status
 
-Design complete. Implementation in progress: the dry-run pipeline runs
-end to end (diff file → `DryRunCodeReviewer` → filter → console). No
-real AI provider is implemented yet, so `dry_run: false` currently
-stops with a "not implemented yet" message — see `docs/DESIGN.md` for
-the v1 scope and the roadmap beyond it.
+Design complete. Implementation in progress: the pipeline runs end to
+end (diff file → reviewer → filter → console), with a dry-run reviewer
+and **Gemini** as the first real provider. Claude and OpenAI aren't
+implemented yet and stop with a "not implemented yet" message — see
+`docs/DESIGN.md` for the v1 scope and the roadmap beyond it.
 
-## Setup (once implemented)
+## Setup
+
+Only Gemini works for real reviews so far; the Claude and OpenAI steps
+below apply once those providers are added.
 
 1. Pick a provider: **Claude** (Anthropic), **OpenAI**, or **Gemini**
    (Google). Get an API key from whichever you choose:

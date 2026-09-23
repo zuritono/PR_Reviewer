@@ -87,7 +87,16 @@ Five responsibilities, kept separate so each can change independently:
    tool. `IPromptBuilder` is injected into every `ICodeReviewer`
    implementation via its constructor, so the "diff + guidelines → one
    prompt string" logic is written once and shared, not duplicated per
-   provider.
+   provider. If the file is missing, a short built-in instruction is
+   used instead (with a note on stderr), so a review still works and
+   still aims for the short style.
+
+   Before any reviewer runs, a diff longer than `max_total_content_chars`
+   is refused with a message rather than sent — a basic guard against an
+   accidentally huge, costly request. `text_extensions` and
+   `max_file_size_chars` (per-file filtering) are in the config template
+   but not applied yet; they belong in the diff source and come in a
+   later step.
 
 3. **Which AI provider generates the review** — abstracted behind an
    `ICodeReviewer` interface:
@@ -105,6 +114,16 @@ Five responsibilities, kept separate so each can change independently:
    the injected `IPromptBuilder`, calls its own API using its own
    provider's native structured-output/JSON mode, and parses the result
    into a `CodeReview`.
+
+   `GeminiCodeReviewer` is the first one built. It calls
+   `models/{model}:generateContent` with `responseMimeType:
+   application/json` and a `responseSchema`, and logs the input/output
+   token counts from each response so the cost of every real review is
+   visible. Gemini also offers a newer Interactions endpoint;
+   `generateContent` was chosen because it's the long-standing, fully
+   supported one, and switching later would only touch this class. API
+   errors (bad key, unknown model, quota) surface as a one-line message
+   using the API's own error text.
 
    A fourth implementation, `DryRunCodeReviewer`, makes no API call at
    all and returns a fixed placeholder review. It's what `dry_run = true`
@@ -134,7 +153,11 @@ Five responsibilities, kept separate so each can change independently:
    If a provider's response doesn't parse as valid structured output,
    the reviewer falls back to a single `Warning`-severity finding
    carrying the raw text, rather than throwing — a malformed response
-   degrades the review, it doesn't crash the tool. (This fallback path
+   degrades the review, it doesn't crash the tool. Parsing and this
+   fallback live in one shared `ReviewResponseParser`, since every
+   provider is asked for the same shape. An answer the provider blocked
+   (e.g. a safety block) takes the same path, with the block reason as
+   the text. (This fallback path
    is the main reason a local LLM provider is deferred rather than
    shipped untested — smaller local models are the likeliest to hit it.)
 
