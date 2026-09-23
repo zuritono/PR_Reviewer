@@ -434,10 +434,37 @@ or, for Google APIs, the `retryDelay` in the error body, up to 60 s;
 a longer requested wait, such as a daily quota, stops at once rather
 than spending more requests against the same limit. Without a hint it
 waits 2, 5, then 10 s), sensible
-timeouts, structured error messages instead of raw exceptions, basic
-automated tests around the prompt-building, diff-source,
-review-generator, and `ReviewFilter` logic, production-scale rate limiting and cost
-ceilings.
+timeouts, structured error messages instead of raw exceptions,
+production-scale rate limiting and cost ceilings. Automated tests are
+already in, pulled forward from here — see *Testing*.
+
+## Testing
+
+An xUnit project in `tests/PrReviewer.Tests`, run with `dotnet test`
+from the repo root (the root `PR_Reviewer.sln` holds both projects).
+The app project sits in the repo root, so it explicitly excludes
+`tests/**`; otherwise the SDK would compile the test code into the app.
+
+Tests never touch the network, a real API key, or the real
+`config.json`:
+
+- Web calls go through a `FakeHttpHandler` that returns canned
+  responses and records each request, so the Gemini request shape, the
+  GitHub headers, and every retry path are checked without a server.
+- `ConfigLoader.Load` and `PromptBuilder.LoadGuidelines` take an
+  optional folder (and the config loader an environment-variable
+  lookup), defaulting to the app's folder and the real environment.
+  Tests pass a temporary folder and a fake environment. This matters
+  because the build copies the real `config.json` into the test output
+  folder too.
+- `ReviewRunner` is tested end to end with a fixed diff and a reviewer
+  returning a canned answer, checking the exact console output.
+
+A quick mutation check when the suite was added (breaking the verdict
+rule, and shifting line numbers by one) failed 1 and 11 tests
+respectively, so the tests do catch real regressions. `DiffParser.Parse`
+is now well covered, which makes the SonarQube complexity finding on it
+(S3776) safe to address by splitting the method, if wanted.
 
 **v4 — shareable.** Packaged for easy distribution (e.g. `dotnet tool
 install`), a proper configuration story beyond a single env var (a

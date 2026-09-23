@@ -228,6 +228,24 @@ Other non-secret settings (provider, model, dry-run mode, max diff size,
 which file extensions to include) live in `config.json` alongside the
 key — see `config.json.template` for the full set.
 
+## Running the tests
+
+```powershell
+cd C:\Dev\PR_Reviewer
+dotnet test
+```
+
+The xUnit tests in `tests/PrReviewer.Tests` run in under a second and
+need no API key, network, or `config.json`: web calls go to a fake
+server, and config tests use a temporary folder and fake environment
+variables. In Visual Studio, open `PR_Reviewer.sln` and use **Test
+Explorer** to run or debug individual tests.
+
+What's covered: diff parsing and line numbers, the filter and verdict,
+the output format, parsing model answers (including malformed ones),
+config loading, GitHub PR links and fetching, retries, the Gemini
+request and error handling, and the whole pipeline end to end.
+
 ## Project structure
 
 See `docs/DESIGN.md` for the full architecture. In short: an
