@@ -238,8 +238,9 @@ dotnet test
 The xUnit tests in `tests/PrReviewer.Tests` run in under a second and
 need no API key, network, or `config.json`: web calls go to a fake
 server, and config tests use a temporary folder and fake environment
-variables. In Visual Studio, open `PR_Reviewer.sln` and use **Test
-Explorer** to run or debug individual tests.
+variables. In Visual Studio, open `PR_Reviewer.slnx` (the solution, not
+`PR_Reviewer.csproj`, which loads the app without its tests) and use
+**Test Explorer** to run or debug individual tests.
 
 What's covered: diff parsing and line numbers, the filter and verdict,
 the output format, parsing model answers (including malformed ones),

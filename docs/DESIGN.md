@@ -441,7 +441,12 @@ already in, pulled forward from here — see *Testing*.
 ## Testing
 
 An xUnit project in `tests/PrReviewer.Tests`, run with `dotnet test`
-from the repo root (the root `PR_Reviewer.sln` holds both projects).
+from the repo root (the root `PR_Reviewer.slnx` holds both projects).
+The solution uses the XML `.slnx` format, the .NET 10 default: every
+tool that can build a `net10.0` project reads it, so the classic `.sln`
+would add no compatibility. There must be only one solution file in the
+root — with two, a bare `dotnet build` stops with MSB1011 ("more than
+one project or solution file").
 The app project sits in the repo root, so it explicitly excludes
 `tests/**`; otherwise the SDK would compile the test code into the app.
 
