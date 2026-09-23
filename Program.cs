@@ -116,10 +116,14 @@ internal static class Program
 
                 services.AddSingleton<IPromptBuilder>(new PromptBuilder(PromptBuilder.LoadGuidelines(Console.Error)));
                 services.AddHttpClient<ICodeReviewer, GeminiCodeReviewer>((http, sp) => new GeminiCodeReviewer(
-                    http,
-                    sp.GetRequiredService<IPromptBuilder>(),
-                    config,
-                    Console.Error))
+                        http,
+                        sp.GetRequiredService<IPromptBuilder>(),
+                        config,
+                        Console.Error))
+                    // The timeout covers all attempts together: a review can
+                    // take a minute, and the server may ask to wait up to a
+                    // minute between retries. The default 100 s is too short.
+                    .ConfigureHttpClient(http => http.Timeout = TimeSpan.FromMinutes(5))
                     .AddHttpMessageHandler(() => new TransientRetryHandler(Console.Error));
                 break;
 

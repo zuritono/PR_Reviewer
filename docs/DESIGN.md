@@ -414,8 +414,12 @@ come: the tool can post the review back as a PR comment. `LocalCodeReviewer` add
 path built in v1.
 
 **v3 — hardening.** Retry/backoff on transient API failures (a basic
-version — `TransientRetryHandler`, 3 retries after 2/5/10 s on
-429/5xx, honoring a short `Retry-After` — is already in), sensible
+version — `TransientRetryHandler`, 3 retries on 429/5xx — is already
+in. It waits as long as the server asks, from a `Retry-After` header
+or, for Google APIs, the `retryDelay` in the error body, up to 60 s;
+a longer requested wait, such as a daily quota, stops at once rather
+than spending more requests against the same limit. Without a hint it
+waits 2, 5, then 10 s), sensible
 timeouts, structured error messages instead of raw exceptions, basic
 automated tests around the prompt-building, diff-source,
 review-generator, and `ReviewFilter` logic, production-scale rate limiting and cost
