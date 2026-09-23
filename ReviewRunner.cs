@@ -1,5 +1,7 @@
 using PrReviewer.Configuration;
+using PrReviewer.Diffs;
 using PrReviewer.DiffSources;
+using PrReviewer.Domain;
 using PrReviewer.Output;
 using PrReviewer.Reviewers;
 
@@ -37,7 +39,24 @@ public class ReviewRunner(
         }
 
         var review = await reviewer.ReviewAsync(diff);
-        printer.Print(filter.Apply(review));
+        printer.Print(filter.Apply(WithCodeLines(review, diff)));
         return 0;
+    }
+
+    /// <summary>
+    /// Fills in each finding's CodeLine from the diff, so the printer can
+    /// show the exact line the finding is about.
+    /// </summary>
+    private static CodeReview WithCodeLines(CodeReview review, string diff)
+    {
+        var lines = DiffParser.NewLines(diff);
+
+        string? Lookup(ReviewFinding finding) =>
+            finding.Line is { } line ? lines.GetValueOrDefault((finding.File, line)) : null;
+
+        return review with
+        {
+            Findings = review.Findings.Select(f => f with { CodeLine = Lookup(f) }).ToList()
+        };
     }
 }

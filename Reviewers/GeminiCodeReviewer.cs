@@ -102,11 +102,22 @@ public class GeminiCodeReviewer(
                         ["message"] = new JsonObject
                         {
                             ["type"] = "STRING",
-                            ["description"] = "One or two short sentences, plain text, no markdown. "
-                                              + "What is wrong and, if not obvious, what to do instead."
+                            ["description"] = "One short sentence, plain text, no markdown: what is "
+                                              + "wrong and why it matters. Put the fix in suggestion, "
+                                              + "not here."
+                        },
+                        ["suggestion"] = new JsonObject
+                        {
+                            ["type"] = "STRING",
+                            ["nullable"] = true,
+                            ["description"] = "The corrected code for that line, exactly as it should "
+                                              + "read, with no line number, \"|\" or +/- prefix. Use an "
+                                              + "empty string if the fix is to delete the line. Use null "
+                                              + "if the fix isn't a small, concrete change to this line "
+                                              + "(a few lines at most)."
                         }
                     },
-                    ["required"] = new JsonArray { "file", "line", "severity", "message" }
+                    ["required"] = new JsonArray { "file", "line", "severity", "message", "suggestion" }
                 }
             },
             ["verdict"] = EnumSchema<ReviewVerdict>()
