@@ -37,10 +37,10 @@ public partial class TransientRetryHandler(TextWriter log, IReadOnlyList<TimeSpa
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        for (var retry = 0; ; retry++)
+        for (var retry = 0; retry < _delays.Count; retry++)
         {
             var response = await base.SendAsync(request, cancellationToken);
-            if (!IsTransient(response.StatusCode) || retry == _delays.Count)
+            if (!IsTransient(response.StatusCode))
             {
                 return response;
             }
@@ -59,6 +59,9 @@ public partial class TransientRetryHandler(TextWriter log, IReadOnlyList<TimeSpa
             response.Dispose();
             await Task.Delay(delay, cancellationToken);
         }
+
+        // Out of retries: one last attempt, returned whatever it is.
+        return await base.SendAsync(request, cancellationToken);
     }
 
     private static bool IsTransient(HttpStatusCode status) => status is

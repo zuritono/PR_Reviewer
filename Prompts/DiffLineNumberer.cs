@@ -1,5 +1,5 @@
 using System.Text;
-using System.Text.RegularExpressions;
+using PrReviewer.Diffs;
 
 namespace PrReviewer.Prompts;
 
@@ -15,57 +15,27 @@ namespace PrReviewer.Prompts;
 ///     21 |+    public List&lt;Order&gt; GetOrdersForCustomer(string customerId)
 ///        |-    old line that was removed
 /// </summary>
-public static partial class DiffLineNumberer
+public static class DiffLineNumberer
 {
     private const int NumberWidth = 6;
-
-    [GeneratedRegex(@"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")]
-    private static partial Regex HunkHeader();
 
     public static string Number(string diff)
     {
         var output = new StringBuilder();
-        int? newLine = null; // null while outside a hunk
 
-        // Trim the diff's final newline first, or it reads as one extra,
-        // empty context line at the end of the last hunk.
-        foreach (var rawLine in diff.TrimEnd('\r', '\n').Split('\n'))
+        foreach (var line in DiffParser.Parse(diff))
         {
-            var line = rawLine.TrimEnd('\r');
-
-            if (line.StartsWith("diff --git "))
+            if (line.NewLineNumber is { } number)
             {
-                newLine = null;
-                output.AppendLine(line);
-                continue;
+                output.Append(number.ToString().PadLeft(NumberWidth)).Append(" |").AppendLine(line.Text);
             }
-
-            var header = HunkHeader().Match(line);
-            if (header.Success)
+            else if (line.IsRemoved)
             {
-                newLine = int.Parse(header.Groups[1].Value);
-                output.AppendLine(line);
-                continue;
-            }
-
-            if (newLine is not { } current || line.StartsWith('\\'))
-            {
-                // Outside a hunk, or "\ No newline at end of file".
-                output.AppendLine(line);
-                continue;
-            }
-
-            if (line.StartsWith('-'))
-            {
-                output.Append(' ', NumberWidth).Append(" |").AppendLine(line);
+                output.Append(' ', NumberWidth).Append(" |").AppendLine(line.Text);
             }
             else
             {
-                // '+' and ' ' lines exist in the new file. Some tools strip
-                // the leading space from empty context lines, so an empty
-                // line counts as context too.
-                output.Append(current.ToString().PadLeft(NumberWidth)).Append(" |").AppendLine(line);
-                newLine = current + 1;
+                output.AppendLine(line.Text);
             }
         }
 

@@ -66,57 +66,70 @@ public class GeminiCodeReviewer(
     /// repeat the length and style rules from review_guidelines.md right
     /// where the model fills in each field.
     /// </summary>
-    private static JsonObject ResponseSchema() => new()
+    private static JsonObject ResponseSchema()
     {
-        ["type"] = "OBJECT",
-        ["properties"] = new JsonObject
+        var findings = Field(ArrayType, "Real problems only. An empty list is a fine answer.");
+        findings["items"] = new JsonObject
         {
-            ["summary"] = new JsonObject
+            ["type"] = ObjectType,
+            ["properties"] = new JsonObject
             {
-                ["type"] = "STRING",
-                ["description"] = "One sentence about the change as a whole. Plain text."
+                ["file"] = Field(StringType, "File path as shown in the diff."),
+                ["line"] = Field(IntegerType,
+                    "The line number shown before the \"|\" on the diff line, or null if the finding "
+                    + "is about the file as a whole.",
+                    nullable: true),
+                ["severity"] = EnumSchema<Severity>(),
+                ["message"] = Field(StringType,
+                    "One short sentence, plain text, no markdown: what is wrong and why it matters. "
+                    + "Put the fix in suggestion, not here."),
+                ["suggestion"] = Field(StringType,
+                    "The corrected code for that line, exactly as it should read, with no line number, "
+                    + "\"|\" or +/- prefix. Use an empty string if the fix is to delete the line. Use null "
+                    + "if the fix isn't a small, concrete change to this line (a few lines at most).",
+                    nullable: true)
             },
-            ["findings"] = new JsonObject
+            ["required"] = new JsonArray { "file", "line", "severity", "message", "suggestion" }
+        };
+
+        return new JsonObject
+        {
+            ["type"] = ObjectType,
+            ["properties"] = new JsonObject
             {
-                ["type"] = "ARRAY",
-                ["description"] = "Real problems only. An empty list is a fine answer.",
-                ["items"] = new JsonObject
-                {
-                    ["type"] = "OBJECT",
-                    ["properties"] = new JsonObject
-                    {
-                        ["file"] = new JsonObject
-                        {
-                            ["type"] = "STRING",
-                            ["description"] = "File path as shown in the diff."
-                        },
-                        ["line"] = new JsonObject
-                        {
-                            ["type"] = "INTEGER",
-                            ["nullable"] = true,
-                            ["description"] = "The line number shown before the \"|\" on the diff "
-                                              + "line, or null if the finding is about the file "
-                                              + "as a whole."
-                        },
-                        ["severity"] = EnumSchema<Severity>(),
-                        ["message"] = new JsonObject
-                        {
-                            ["type"] = "STRING",
-                            ["description"] = "One or two short sentences, plain text, no markdown. "
-                                              + "What is wrong and, if not obvious, what to do instead."
-                        }
-                    },
-                    ["required"] = new JsonArray { "file", "line", "severity", "message" }
-                }
+                ["summary"] = Field(StringType, "One sentence about the change as a whole. Plain text."),
+                ["findings"] = findings,
+                ["verdict"] = EnumSchema<ReviewVerdict>()
             },
-            ["verdict"] = EnumSchema<ReviewVerdict>()
-        },
-        ["required"] = new JsonArray { "summary", "findings", "verdict" }
-    };
+            ["required"] = new JsonArray { "summary", "findings", "verdict" }
+        };
+    }
+
+    // Gemini's schema type names.
+    private const string StringType = "STRING";
+    private const string IntegerType = "INTEGER";
+    private const string ArrayType = "ARRAY";
+    private const string ObjectType = "OBJECT";
+
+    /// <summary>
+    /// One schema field: its type, whether it may be null, and the
+    /// description the model reads when filling it in.
+    /// </summary>
+    private static JsonObject Field(string type, string description, bool nullable = false)
+    {
+        var field = new JsonObject { ["type"] = type };
+        if (nullable)
+        {
+            field["nullable"] = true;
+        }
+
+        field["description"] = description;
+        return field;
+    }
 
     private static JsonObject EnumSchema<TEnum>() where TEnum : struct, Enum => new()
     {
-        ["type"] = "STRING",
+        ["type"] = StringType,
         ["enum"] = new JsonArray(Enum.GetNames<TEnum>().Select(n => (JsonNode)n).ToArray())
     };
 

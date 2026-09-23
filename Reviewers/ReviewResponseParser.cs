@@ -37,10 +37,13 @@ public static class ReviewResponseParser
             var findings = dto.Findings
                 .Where(f => !string.IsNullOrWhiteSpace(f.Message))
                 .Select(f => new ReviewFinding(
-                    string.IsNullOrWhiteSpace(f.File) ? "(whole diff)" : f.File,
+                    CleanPath(f.File),
                     f.Line is > 0 ? f.Line : null,
                     f.Severity ?? Severity.Suggestion,
-                    f.Message!.Trim()))
+                    f.Message!.Trim(),
+                    // Kept as-is apart from trailing whitespace: "" is a
+                    // real answer ("delete the line"), null means no fix.
+                    f.Suggestion?.TrimEnd()))
                 .ToList();
 
             return new CodeReview(dto.Summary.Trim(), findings, dto.Verdict.Value);
@@ -51,12 +54,32 @@ public static class ReviewResponseParser
         }
     }
 
+    /// <summary>
+    /// Models sometimes copy the path with git's "b/" prefix from the
+    /// "+++ b/path" header, or with a leading "./".
+    /// </summary>
+    private static string CleanPath(string? file)
+    {
+        if (string.IsNullOrWhiteSpace(file))
+        {
+            return "(whole diff)";
+        }
+
+        var path = file.Trim();
+        if (path.StartsWith("b/") || path.StartsWith("./"))
+        {
+            path = path[2..];
+        }
+
+        return path;
+    }
+
     public static CodeReview Fallback(string rawText) => new(
         "The model's answer couldn't be read as a structured review; its raw text is below.",
         [new ReviewFinding("(whole diff)", null, Severity.Warning, rawText.Trim())],
         ReviewVerdict.ApproveWithComments);
 
-    private record ReviewDto(string? Summary, List<FindingDto>? Findings, ReviewVerdict? Verdict);
+    private sealed record ReviewDto(string? Summary, List<FindingDto>? Findings, ReviewVerdict? Verdict);
 
-    private record FindingDto(string? File, int? Line, Severity? Severity, string? Message);
+    private sealed record FindingDto(string? File, int? Line, Severity? Severity, string? Message, string? Suggestion);
 }
