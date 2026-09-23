@@ -79,7 +79,7 @@ public static class ReviewResponseParser
         [new ReviewFinding("(whole diff)", null, Severity.Warning, rawText.Trim())],
         ReviewVerdict.ApproveWithComments);
 
-    private record ReviewDto(string? Summary, List<FindingDto>? Findings, ReviewVerdict? Verdict);
+    private sealed record ReviewDto(string? Summary, List<FindingDto>? Findings, ReviewVerdict? Verdict);
 
-    private record FindingDto(string? File, int? Line, Severity? Severity, string? Message, string? Suggestion);
+    private sealed record FindingDto(string? File, int? Line, Severity? Severity, string? Message, string? Suggestion);
 }

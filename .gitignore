@@ -10,6 +10,10 @@ config.json
 *.diff
 !samples/*.diff
 
+# SonarQube: the scanner's working folder and exported issue lists
+.sonarqube/
+sonar-issues*.json
+
 # IDE
 .vs/
 .idea/
