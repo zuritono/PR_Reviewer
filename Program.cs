@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using PrReviewer.Configuration;
 using PrReviewer.DiffSources;
+using PrReviewer.Http;
 using PrReviewer.Output;
 using PrReviewer.Prompts;
 using PrReviewer.Reviewers;
@@ -88,7 +89,8 @@ internal static class Program
                      $"Not a GitHub pull request link: {argument}. Expected https://github.com/owner/repo/pull/123.");
 
         services.AddHttpClient<IDiffSource, GitHubPrDiffSource>((http, _) =>
-            new GitHubPrDiffSource(http, pr, config.GitHubToken, Console.Error));
+                new GitHubPrDiffSource(http, pr, config.GitHubToken, Console.Error))
+            .AddHttpMessageHandler(() => new TransientRetryHandler(Console.Error));
     }
 
     /// <summary>
@@ -117,7 +119,8 @@ internal static class Program
                     http,
                     sp.GetRequiredService<IPromptBuilder>(),
                     config,
-                    Console.Error));
+                    Console.Error))
+                    .AddHttpMessageHandler(() => new TransientRetryHandler(Console.Error));
                 break;
 
             case "claude" or "openai":

@@ -61,10 +61,12 @@ project as a whole:
   different failure profile (model availability, weaker
   structured-output reliability) worth tackling as its own milestone
   rather than folding in untested.
-- Retry/backoff on API failures, rate limiting, and cost controls beyond
-  the model default and `dry_run` — need to exist before this is used
+- Rate limiting and cost controls beyond the model default, `dry_run`
+  and `max_total_content_chars` — need to exist before this is used
   against real traffic, deferred only because v1 is single-diff,
-  on-demand, manually invoked.
+  on-demand, manually invoked. (A basic retry on temporary API errors
+  was pulled forward from v3: Gemini's free tier returns 503 "high
+  demand" often enough to make the tool frustrating without it.)
 - Packaging/distribution (e.g. as a `dotnet tool`) and versioning — real
   requirements for anything meant to be shared, deferred until the core
   functionality is solid.
@@ -411,7 +413,9 @@ come: the tool can post the review back as a PR comment. `LocalCodeReviewer` add
 — same interface, no API key, exercising the fallback-on-unparsable-output
 path built in v1.
 
-**v3 — hardening.** Retry/backoff on transient API failures, sensible
+**v3 — hardening.** Retry/backoff on transient API failures (a basic
+version — `TransientRetryHandler`, 3 retries after 2/5/10 s on
+429/5xx, honoring a short `Retry-After` — is already in), sensible
 timeouts, structured error messages instead of raw exceptions, basic
 automated tests around the prompt-building, diff-source,
 review-generator, and `ReviewFilter` logic, production-scale rate limiting and cost
