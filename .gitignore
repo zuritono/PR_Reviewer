@@ -5,6 +5,11 @@ obj/
 # Local secrets - never commit the real config, only config.json.template
 config.json
 
+# Diffs saved for review (git diff > pr.diff) can contain code from other
+# projects; keep them out of this repo. The sample is the one exception.
+*.diff
+!samples/*.diff
+
 # IDE
 .vs/
 .idea/

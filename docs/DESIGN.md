@@ -356,9 +356,11 @@ reader actually sees.
 - Diff content is sent to a third-party API (Anthropic, OpenAI, or
   Google, depending on provider) for analysis. As with any tool that
   sends code to an external service, this shouldn't be run against diffs
-  containing credentials, private keys, or sensitive personal data —
-  worth calling out explicitly in the README once this is shared with
-  anyone else.
+  containing credentials, private keys, or sensitive personal data.
+  Free tiers add a second concern: their terms may allow the provider
+  to keep and use submitted content, so confidential code belongs on a
+  paid tier only. Both are called out in the README ("What gets sent
+  where").
 - All provider keys follow the same pattern in `config.json.template`:
   masked placeholder, real value only ever in the git-ignored
   `config.json` or an environment variable. Only the key matching the

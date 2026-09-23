@@ -79,6 +79,20 @@ below apply once those providers are added.
    but not implemented yet — see `docs/DESIGN.md` for why it's deferred
    rather than shipped alongside these three.
 
+## What gets sent where
+
+Every real review sends the whole diff, plus `review_guidelines.md`,
+to the selected provider's API (Google, Anthropic, or OpenAI).
+
+- **Don't review diffs containing secrets**: API keys, passwords,
+  connection strings, private keys, or personal data.
+- **Free tiers may keep your code.** Google's terms for the Gemini free
+  tier allow submitted content to be used to improve its products,
+  including review by people. That's fine for personal or open-source
+  code; for anything confidential (e.g. your employer's code), use a
+  paid tier whose terms exclude training on your data, and check that
+  you're allowed to send that code to a third party at all.
+
 ## Testing without API costs
 
 `config.json` includes `"dry_run": true` **by default**. While it's
