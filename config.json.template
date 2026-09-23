@@ -8,6 +8,9 @@
   "openai_api_key": "sk-YOUR-KEY-HERE",
   "gemini_api_key": "YOUR-GEMINI-KEY-HERE",
 
+  "github_token": "YOUR-GITHUB-TOKEN-HERE",
+  "_github_token_comment": "Optional. Only for reviewing PRs by URL (prreview https://github.com/owner/repo/pull/123). Public repos work without it (GitHub allows 60 requests an hour); set it for private repos or a higher limit. Use a fine-grained token with read-only 'Pull requests' access: https://github.com/settings/personal-access-tokens. GITHUB_TOKEN environment variable takes precedence.",
+
   "model": "gemini-3.5-flash-lite",
   "_model_options": "Claude (provider=claude): claude-haiku-4-5-20251001 (cheapest/fastest), claude-sonnet-5 (default for real reviews), claude-opus-5, claude-fable-5-1. OpenAI (provider=openai): gpt-5.6-luna (cheapest). Gemini (provider=gemini): gemini-3.5-flash-lite (free-tier eligible, cheapest paid), gemini-3.8-flash and other Flash models also have free-tier access — check current free-tier limits before relying on them for anything beyond manual testing. Check https://docs.claude.com/en/docs/about-claude/models, https://developers.openai.com/api/docs/models, and https://ai.google.dev/gemini-api/docs/pricing for current lists — model IDs and free-tier terms change over time.",
 

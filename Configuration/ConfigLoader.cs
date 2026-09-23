@@ -45,12 +45,15 @@ public static class ConfigLoader
             }
         }
 
-        // Environment variables take precedence over keys in the file.
-        var geminiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
-        if (!string.IsNullOrWhiteSpace(geminiKey))
+        // Environment variables take precedence over keys in the file, and
+        // the masked placeholders from config.json.template count as no key.
+        config = config with
         {
-            config = config with { GeminiApiKey = geminiKey };
-        }
+            GeminiApiKey = RealKeyOrNull(Environment.GetEnvironmentVariable("GEMINI_API_KEY"))
+                           ?? RealKeyOrNull(config.GeminiApiKey),
+            GitHubToken = RealKeyOrNull(Environment.GetEnvironmentVariable("GITHUB_TOKEN"))
+                          ?? RealKeyOrNull(config.GitHubToken)
+        };
 
         if (config.MaxFindings < 1)
         {
@@ -65,6 +68,14 @@ public static class ConfigLoader
 
         return config;
     }
+
+    /// <summary>
+    /// Null for an empty value or a template placeholder ("YOUR-...").
+    /// </summary>
+    private static string? RealKeyOrNull(string? key) =>
+        string.IsNullOrWhiteSpace(key) || key.StartsWith("YOUR-", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : key.Trim();
 }
 
 public class ConfigException(string message) : Exception(message);

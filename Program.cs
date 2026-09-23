@@ -18,7 +18,7 @@ internal static class Program
 
         if (args.Length != 1)
         {
-            Console.Error.WriteLine("Usage: PrReviewer <diff-file>");
+            Console.Error.WriteLine("Usage: PrReviewer <diff-file | github-pr-url>");
             return 1;
         }
 
@@ -28,19 +28,22 @@ internal static class Program
             using var services = BuildServices(config, args[0]);
             return await services.GetRequiredService<ReviewRunner>().RunAsync();
         }
-        catch (Exception ex) when (ex is ConfigException or FileNotFoundException or ProviderException)
+        catch (Exception ex) when (ex is ConfigException or FileNotFoundException
+                                       or DiffSourceException or ProviderException)
         {
             Console.Error.WriteLine(ex.Message);
             return 1;
         }
         catch (HttpRequestException ex)
         {
-            Console.Error.WriteLine($"Couldn't reach the provider's API: {ex.Message}");
+            // The message names the host, e.g. api.github.com or
+            // generativelanguage.googleapis.com.
+            Console.Error.WriteLine($"Network error: {ex.Message}");
             return 1;
         }
         catch (TaskCanceledException)
         {
-            Console.Error.WriteLine("The provider's API didn't answer in time. Try again, or review a smaller diff.");
+            Console.Error.WriteLine("A web request didn't get an answer in time. Try again, or review a smaller diff.");
             return 1;
         }
     }
@@ -49,12 +52,12 @@ internal static class Program
     /// Composition root: the only place that knows which implementations
     /// are in use. Everything downstream receives interfaces.
     /// </summary>
-    private static ServiceProvider BuildServices(AppConfig config, string diffPath)
+    private static ServiceProvider BuildServices(AppConfig config, string diffArgument)
     {
         var services = new ServiceCollection();
 
         services.AddSingleton(config);
-        services.AddSingleton<IDiffSource>(new LocalFileDiffSource(diffPath));
+        AddDiffSource(services, config, diffArgument);
         AddReviewer(services, config);
         services.AddSingleton<ReviewFilter>();
         services.AddSingleton(new ConsoleReviewPrinter(Console.Out));
@@ -67,6 +70,25 @@ internal static class Program
             Console.Error));
 
         return services.BuildServiceProvider();
+    }
+
+    /// <summary>
+    /// A web address means a GitHub PR; anything else is a diff file.
+    /// </summary>
+    private static void AddDiffSource(IServiceCollection services, AppConfig config, string argument)
+    {
+        if (!GitHubPrUrl.LooksLikeUrl(argument))
+        {
+            services.AddSingleton<IDiffSource>(new LocalFileDiffSource(argument));
+            return;
+        }
+
+        var pr = GitHubPrUrl.TryParse(argument)
+                 ?? throw new ConfigException(
+                     $"Not a GitHub pull request link: {argument}. Expected https://github.com/owner/repo/pull/123.");
+
+        services.AddHttpClient<IDiffSource, GitHubPrDiffSource>((http, _) =>
+            new GitHubPrDiffSource(http, pr, config.GitHubToken, Console.Error));
     }
 
     /// <summary>
@@ -84,7 +106,7 @@ internal static class Program
         switch (config.Provider.ToLowerInvariant())
         {
             case "gemini":
-                if (IsMissingKey(config.GeminiApiKey))
+                if (config.GeminiApiKey is null)
                 {
                     throw new ConfigException(
                         $"No Gemini API key. Set GEMINI_API_KEY or gemini_api_key in {ConfigLoader.FileName}.");
@@ -107,10 +129,4 @@ internal static class Program
                     $"Unknown provider '{config.Provider}'. Use claude, openai or gemini.");
         }
     }
-
-    /// <summary>
-    /// Empty, or still the masked placeholder from config.json.template.
-    /// </summary>
-    private static bool IsMissingKey(string? key) =>
-        string.IsNullOrWhiteSpace(key) || key.StartsWith("YOUR-", StringComparison.OrdinalIgnoreCase);
 }

@@ -24,6 +24,13 @@ public record AppConfig
     [JsonPropertyName("gemini_api_key")]
     public string? GeminiApiKey { get; init; }
 
+    /// <summary>
+    /// Optional. Only needed to review PRs in private repos, or to go past
+    /// GitHub's 60 requests an hour without one.
+    /// </summary>
+    [JsonPropertyName("github_token")]
+    public string? GitHubToken { get; init; }
+
     [JsonPropertyName("min_severity")]
     public Severity MinSeverity { get; init; } = Severity.Suggestion;
 
