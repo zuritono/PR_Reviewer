@@ -91,15 +91,15 @@ public class DiffParserTests
     [Fact]
     public void Code_strips_the_diff_marker_but_keeps_indentation()
     {
-        var lines = DiffParser.NewLines(SampleDiffs.Klelab);
+        var lines = DiffParser.NewLines(SampleDiffs.PlantedBugs);
 
         Assert.Equal("      console.log(\"form result\", result);", lines[("script.js", 29)]);
     }
 
     [Fact]
-    public void Real_pr_diff_puts_each_planted_bug_on_the_right_line()
+    public void Puts_each_planted_bug_on_the_right_line()
     {
-        var lines = DiffParser.NewLines(SampleDiffs.Klelab);
+        var lines = DiffParser.NewLines(SampleDiffs.PlantedBugs);
 
         Assert.Equal("$safe_name  = $name;", lines[("contact.php", 156)]);
         Assert.Contains("console.log", lines[("script.js", 29)]);

@@ -9,7 +9,7 @@ public class DryRunCodeReviewerTests
     [Fact]
     public async Task Makes_placeholder_findings_on_real_added_lines()
     {
-        var review = await new DryRunCodeReviewer().ReviewAsync(SampleDiffs.Klelab);
+        var review = await new DryRunCodeReviewer().ReviewAsync(SampleDiffs.PlantedBugs);
 
         Assert.Contains("Dry run", review.Summary);
         Assert.Contains("2 changed file(s)", review.Summary);
@@ -21,7 +21,7 @@ public class DryRunCodeReviewerTests
     [Fact]
     public async Task Covers_every_severity_and_every_kind_of_fix()
     {
-        var review = await new DryRunCodeReviewer().ReviewAsync(SampleDiffs.Klelab);
+        var review = await new DryRunCodeReviewer().ReviewAsync(SampleDiffs.PlantedBugs);
 
         Assert.Equal([Severity.Critical, Severity.Warning, Severity.Suggestion, Severity.Info], review.Findings.Select(f => f.Severity));
         Assert.NotEmpty(review.Findings[0].Suggestion!);

@@ -8,7 +8,7 @@ public class PromptBuilderTests
     [Fact]
     public void Puts_the_guidelines_first_then_the_numbered_diff()
     {
-        var prompt = new PromptBuilder("  MY GUIDELINES  ").BuildPrompt(SampleDiffs.Klelab);
+        var prompt = new PromptBuilder("  MY GUIDELINES  ").BuildPrompt(SampleDiffs.PlantedBugs);
 
         Assert.StartsWith("MY GUIDELINES", prompt);
         Assert.True(prompt.IndexOf("## Diff to review", StringComparison.Ordinal) > prompt.IndexOf("MY GUIDELINES", StringComparison.Ordinal));

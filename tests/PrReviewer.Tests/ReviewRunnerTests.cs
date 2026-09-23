@@ -29,7 +29,9 @@ public class ReviewRunnerTests
         }
     }
 
-    private static readonly CodeReview KlelabReview = new("Three bugs.",
+    /// <summary>What a good model answer for SampleDiffs.PlantedBugs looks like.</summary>
+    private static readonly CodeReview PlantedBugsReview = new(
+        "Removes name sanitization, inverts the success check, and leaves a debug log.",
     [
         new ReviewFinding("contact.php", 156, Severity.Critical, "Header injection.",
             Suggestion: "$safe_name  = str_replace([\"\\r\", \"\\n\"], '', $name);"),
@@ -52,11 +54,11 @@ public class ReviewRunnerTests
     [Fact]
     public async Task Prints_each_finding_with_its_line_from_the_diff_and_fix()
     {
-        var (exitCode, output, _, _) = await Run(SampleDiffs.Klelab, KlelabReview);
+        var (exitCode, output, _, _) = await Run(SampleDiffs.PlantedBugs, PlantedBugsReview);
 
         Assert.Equal(0, exitCode);
         var expected = string.Join(Environment.NewLine,
-            "Three bugs.",
+            "Removes name sanitization, inverts the success check, and leaves a debug log.",
             "",
             "contact.php:156 — Must fix",
             "  Header injection.",
@@ -84,7 +86,7 @@ public class ReviewRunnerTests
         var review = new CodeReview("s", [new ReviewFinding("script.js", 999, Severity.Warning, "Somewhere else.")],
             ReviewVerdict.RequestChanges);
 
-        var (_, output, _, _) = await Run(SampleDiffs.Klelab, review);
+        var (_, output, _, _) = await Run(SampleDiffs.PlantedBugs, review);
 
         Assert.Contains("script.js:999 — Should fix", output);
         Assert.DoesNotContain("  - ", output);
@@ -93,7 +95,7 @@ public class ReviewRunnerTests
     [Fact]
     public async Task Empty_diff_is_not_sent_for_review()
     {
-        var (exitCode, output, log, reviewer) = await Run("   ", KlelabReview);
+        var (exitCode, output, log, reviewer) = await Run("   ", PlantedBugsReview);
 
         Assert.Equal(0, exitCode);
         Assert.Equal(0, reviewer.Calls);
@@ -104,7 +106,7 @@ public class ReviewRunnerTests
     [Fact]
     public async Task Diff_over_the_size_limit_is_refused_before_any_review()
     {
-        var (exitCode, _, log, reviewer) = await Run(SampleDiffs.Klelab, KlelabReview, new AppConfig { MaxTotalContentChars = 100 });
+        var (exitCode, _, log, reviewer) = await Run(SampleDiffs.PlantedBugs, PlantedBugsReview, new AppConfig { MaxTotalContentChars = 100 });
 
         Assert.Equal(1, exitCode);
         Assert.Equal(0, reviewer.Calls);

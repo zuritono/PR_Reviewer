@@ -41,8 +41,13 @@ public static class SampleDiffs
         "-gone2",
         "");
 
-    /// <summary>The klelab test PR: three planted bugs in two files.</summary>
-    public static readonly string Klelab = string.Join("\n",
+    /// <summary>
+    /// A realistic small change with three deliberate bugs, one per kind: a
+    /// security hole (contact.php:156, newlines no longer stripped from a
+    /// value that goes into an email header), a logic bug (script.js:31,
+    /// inverted success check) and leftover debug code (script.js:29).
+    /// </summary>
+    public static readonly string PlantedBugs = string.Join("\n",
         "diff --git a/contact.php b/contact.php",
         "index a723b4f..cb15fe2 100644",
         "--- a/contact.php",
