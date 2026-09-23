@@ -4,8 +4,8 @@ using System.Text.Json.Serialization;
 namespace PrReviewer.Configuration;
 
 /// <summary>
-/// Loads config.json from the current directory. A missing file is not
-/// an error: every setting falls back to its default, including
+/// Loads config.json from the app's own folder. A missing file is not an
+/// error: every setting falls back to its default, including
 /// dry_run = true.
 /// </summary>
 public static class ConfigLoader
@@ -21,12 +21,15 @@ public static class ConfigLoader
 
     public static AppConfig Load(TextWriter log)
     {
-        var path = Path.Combine(Directory.GetCurrentDirectory(), FileName);
+        // Next to the executable, not the current directory, so the tool
+        // can be run from inside any repo. The build copies config.json
+        // there (see PR_Reviewer.csproj).
+        var path = Path.Combine(AppContext.BaseDirectory, FileName);
 
         AppConfig config;
         if (!File.Exists(path))
         {
-            log.WriteLine($"{FileName} not found, using defaults (dry_run = true).");
+            log.WriteLine($"{FileName} not found in {AppContext.BaseDirectory}, using defaults (dry_run = true).");
             config = new AppConfig();
         }
         else

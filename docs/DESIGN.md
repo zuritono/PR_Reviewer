@@ -96,6 +96,13 @@ Five responsibilities, kept separate so each can change independently:
    note on stderr), so a review still works and still aims for the short
    style.
 
+   Both `config.json` and `review_guidelines.md` are read from the
+   app's own folder (`AppContext.BaseDirectory`), not the current
+   directory, so the tool can be run from inside any repo; the build
+   copies both files there. Reading from the current directory meant
+   that running it from another repo silently fell back to defaults,
+   i.e. a dry run.
+
    Before any reviewer runs, a diff longer than `max_total_content_chars`
    is refused with a message rather than sent — a basic guard against an
    accidentally huge, costly request. `text_extensions` and

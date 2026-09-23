@@ -36,18 +36,19 @@ public class PromptBuilder(string guidelines) : IPromptBuilder
         """;
 
     /// <summary>
-    /// Reads review_guidelines.md from the current directory, falling back
-    /// to a short built-in instruction if the file isn't there.
+    /// Reads review_guidelines.md from the app's own folder (the build
+    /// copies it there), falling back to a short built-in instruction if
+    /// the file isn't there.
     /// </summary>
     public static string LoadGuidelines(TextWriter log)
     {
-        var path = Path.Combine(Directory.GetCurrentDirectory(), GuidelinesFileName);
+        var path = Path.Combine(AppContext.BaseDirectory, GuidelinesFileName);
         if (File.Exists(path))
         {
             return File.ReadAllText(path);
         }
 
-        log.WriteLine($"{GuidelinesFileName} not found, using built-in minimal guidelines.");
+        log.WriteLine($"{GuidelinesFileName} not found in {AppContext.BaseDirectory}, using built-in minimal guidelines.");
         return FallbackGuidelines;
     }
 }

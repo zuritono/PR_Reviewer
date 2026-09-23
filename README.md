@@ -102,9 +102,40 @@ anything — you'll notice.
 
 ## Usage
 
+The intended workflow: in the repo you're working on, save the diff,
+review it, read the result in the console, and decide what goes into
+the PR. Nothing is posted anywhere.
+
 ```powershell
-git diff > my-changes.diff
-dotnet run -- my-changes.diff
+cd C:\path\to\your\work-repo
+git diff main...HEAD > pr.diff   # what the PR will contain
+prreview pr.diff
+```
+
+Other useful diffs: `git diff` (uncommitted changes), `git diff --cached`
+(staged only).
+
+`prreview` is a small function in your PowerShell profile
+(`notepad $PROFILE`) that runs the tool from any folder:
+
+```powershell
+function prreview {
+    dotnet run --project C:\Dev\PR_Reviewer\PR_Reviewer.csproj --no-launch-profile -- @args
+}
+```
+
+`dotnet run` rebuilds first when anything changed, so it always uses
+your latest code, `config.json` and `review_guidelines.md`. The tool
+reads those two files from its own build folder, and every build copies
+them there from the project folder — so edit them in the project
+folder, never in `bin\`. `--no-launch-profile` stops Visual Studio's
+launch profile (which points at the sample diff) from applying.
+
+Without the function, run it from the project folder:
+
+```powershell
+cd C:\Dev\PR_Reviewer
+dotnet run -- C:\path\to\pr.diff
 ```
 
 `samples/sample.diff` is a small C# and SQL Server change with a few
@@ -121,8 +152,9 @@ places control that:
 
 - **`review_guidelines.md`** — loaded automatically and added to every
   review prompt. It sets what to look for, what to skip, and how to
-  write, with example comments showing the tone. Edit it freely, no
-  rebuild required.
+  write, with example comments showing the tone. Edit it freely; the
+  next `prreview` or `dotnet run` picks up the change, no code changes
+  needed.
 - **`min_severity` and `max_findings` in `config.json`** — applied in
   code after the model responds, so they hold no matter what the model
   returns. Findings below `min_severity` are dropped (default:

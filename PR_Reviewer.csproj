@@ -20,4 +20,15 @@
     the current compatible version actually is instead of a guessed number.
   -->
 
+  <!--
+    The app reads config.json and review_guidelines.md from its own folder,
+    so every build copies the current versions there. Edit the files in the
+    project folder; a build (or dotnet run) picks up the change.
+    config.json is git-ignored and may not exist; Update does nothing then.
+  -->
+  <ItemGroup>
+    <None Update="config.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="review_guidelines.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
