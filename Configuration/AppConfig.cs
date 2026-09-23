@@ -5,10 +5,10 @@ namespace PrReviewer.Configuration;
 
 /// <summary>
 /// Settings read from config.json. Only the settings the current code
-/// uses are here; API keys and size limits are added along with the
-/// providers that need them. Defaults apply to anything missing from
-/// the file, and DryRun defaults to true so a missing or incomplete
-/// config can never lead to a billed API call.
+/// uses are here; keys for other providers are added along with those
+/// providers. Defaults apply to anything missing from the file, and
+/// DryRun defaults to true so a missing or incomplete config can never
+/// lead to a billed API call.
 /// </summary>
 public record AppConfig
 {
@@ -21,9 +21,19 @@ public record AppConfig
     [JsonPropertyName("dry_run")]
     public bool DryRun { get; init; } = true;
 
+    [JsonPropertyName("gemini_api_key")]
+    public string? GeminiApiKey { get; init; }
+
     [JsonPropertyName("min_severity")]
     public Severity MinSeverity { get; init; } = Severity.Suggestion;
 
     [JsonPropertyName("max_findings")]
     public int MaxFindings { get; init; } = 10;
+
+    /// <summary>
+    /// Diffs longer than this are refused rather than sent, as a basic
+    /// guard against an accidentally huge (and costly) request.
+    /// </summary>
+    [JsonPropertyName("max_total_content_chars")]
+    public int MaxTotalContentChars { get; init; } = 150_000;
 }

@@ -1,3 +1,4 @@
+using PrReviewer.Configuration;
 using PrReviewer.DiffSources;
 using PrReviewer.Output;
 using PrReviewer.Reviewers;
@@ -14,18 +15,29 @@ public class ReviewRunner(
     ICodeReviewer reviewer,
     ReviewFilter filter,
     ConsoleReviewPrinter printer,
+    AppConfig config,
     TextWriter log)
 {
-    public async Task RunAsync()
+    /// <returns>The process exit code.</returns>
+    public async Task<int> RunAsync()
     {
         var diff = await diffSource.GetDiffAsync();
         if (string.IsNullOrWhiteSpace(diff))
         {
             log.WriteLine("The diff is empty, nothing to review.");
-            return;
+            return 0;
+        }
+
+        if (diff.Length > config.MaxTotalContentChars)
+        {
+            log.WriteLine(
+                $"The diff is {diff.Length:N0} characters, over the max_total_content_chars limit of "
+                + $"{config.MaxTotalContentChars:N0}. Review a smaller diff or raise the limit in config.json.");
+            return 1;
         }
 
         var review = await reviewer.ReviewAsync(diff);
         printer.Print(filter.Apply(review));
+        return 0;
     }
 }

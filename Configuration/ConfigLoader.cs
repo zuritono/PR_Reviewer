@@ -42,9 +42,22 @@ public static class ConfigLoader
             }
         }
 
+        // Environment variables take precedence over keys in the file.
+        var geminiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+        if (!string.IsNullOrWhiteSpace(geminiKey))
+        {
+            config = config with { GeminiApiKey = geminiKey };
+        }
+
         if (config.MaxFindings < 1)
         {
             throw new ConfigException($"max_findings must be at least 1, got {config.MaxFindings}.");
+        }
+
+        if (config.MaxTotalContentChars < 1)
+        {
+            throw new ConfigException(
+                $"max_total_content_chars must be at least 1, got {config.MaxTotalContentChars}.");
         }
 
         return config;
