@@ -24,12 +24,14 @@ public class PromptBuilder(string guidelines) : IPromptBuilder
 
         ## Diff to review
 
-        Review only the changes in this diff. Lines starting with + were added and
-        lines starting with - were removed. Line numbers refer to the new version of
-        the file, counted from the @@ hunk headers.
+        Review only the changes in this diff. Each line inside a hunk starts with its
+        line number in the new version of the file, then "|", then the diff line.
+        After the "|", + means added, - means removed, and a space means unchanged.
+        Removed lines have no number. For a finding's line, copy the number shown
+        on the line; don't count lines yourself.
 
-        ```diff
-        {diff.TrimEnd()}
+        ```
+        {DiffLineNumberer.Number(diff)}
         ```
         """;
 

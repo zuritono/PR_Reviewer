@@ -94,8 +94,9 @@ public class GeminiCodeReviewer(
                         {
                             ["type"] = "INTEGER",
                             ["nullable"] = true,
-                            ["description"] = "Line in the new version of the file, or null if the "
-                                              + "finding is about the file as a whole."
+                            ["description"] = "The line number shown before the \"|\" on the diff "
+                                              + "line, or null if the finding is about the file "
+                                              + "as a whole."
                         },
                         ["severity"] = EnumSchema<Severity>(),
                         ["message"] = new JsonObject

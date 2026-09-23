@@ -87,9 +87,14 @@ Five responsibilities, kept separate so each can change independently:
    tool. `IPromptBuilder` is injected into every `ICodeReviewer`
    implementation via its constructor, so the "diff + guidelines → one
    prompt string" logic is written once and shared, not duplicated per
-   provider. If the file is missing, a short built-in instruction is
-   used instead (with a note on stderr), so a review still works and
-   still aims for the short style.
+   provider. Before the diff goes into the prompt, `DiffLineNumberer`
+   prefixes every hunk line with its line number in the new file, and
+   the prompt tells the model to copy those numbers. Models asked to
+   count lines from the `@@` headers themselves were off by one or two;
+   with the numbers written out, findings land on the right line. If the
+   file is missing, a short built-in instruction is used instead (with a
+   note on stderr), so a review still works and still aims for the short
+   style.
 
    Before any reviewer runs, a diff longer than `max_total_content_chars`
    is refused with a message rather than sent — a basic guard against an
