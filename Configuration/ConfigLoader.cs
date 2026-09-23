@@ -19,17 +19,26 @@ public static class ConfigLoader
         AllowTrailingCommas = true
     };
 
-    public static AppConfig Load(TextWriter log)
+    /// <param name="log">Where to write the "not found" note.</param>
+    /// <param name="directory">Folder holding config.json. Defaults to the
+    /// app's own folder, not the current directory, so the tool can be run
+    /// from inside any repo; the build copies config.json there (see
+    /// PR_Reviewer.csproj). Tests pass a temporary folder.</param>
+    /// <param name="environment">Reads an environment variable. Defaults to
+    /// the real environment; tests pass a fake one.</param>
+    public static AppConfig Load(
+        TextWriter log,
+        string? directory = null,
+        Func<string, string?>? environment = null)
     {
-        // Next to the executable, not the current directory, so the tool
-        // can be run from inside any repo. The build copies config.json
-        // there (see PR_Reviewer.csproj).
-        var path = Path.Combine(AppContext.BaseDirectory, FileName);
+        directory ??= AppContext.BaseDirectory;
+        environment ??= Environment.GetEnvironmentVariable;
+        var path = Path.Combine(directory, FileName);
 
         AppConfig config;
         if (!File.Exists(path))
         {
-            log.WriteLine($"{FileName} not found in {AppContext.BaseDirectory}, using defaults (dry_run = true).");
+            log.WriteLine($"{FileName} not found in {directory}, using defaults (dry_run = true).");
             config = new AppConfig();
         }
         else
@@ -49,9 +58,9 @@ public static class ConfigLoader
         // the masked placeholders from config.json.template count as no key.
         config = config with
         {
-            GeminiApiKey = RealKeyOrNull(Environment.GetEnvironmentVariable("GEMINI_API_KEY"))
+            GeminiApiKey = RealKeyOrNull(environment("GEMINI_API_KEY"))
                            ?? RealKeyOrNull(config.GeminiApiKey),
-            GitHubToken = RealKeyOrNull(Environment.GetEnvironmentVariable("GITHUB_TOKEN"))
+            GitHubToken = RealKeyOrNull(environment("GITHUB_TOKEN"))
                           ?? RealKeyOrNull(config.GitHubToken)
         };
 
