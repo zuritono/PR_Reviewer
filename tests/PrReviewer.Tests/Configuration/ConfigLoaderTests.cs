@@ -75,12 +75,14 @@ public sealed class ConfigLoaderTests : IDisposable
     [Fact]
     public void Environment_variables_win_over_the_file()
     {
-        WriteConfig("""{ "gemini_api_key": "file-key", "github_token": "file-token" }""");
+        WriteConfig("""{ "anthropic_api_key": "file-ant", "gemini_api_key": "file-key", "github_token": "file-token" }""");
+        _environment["ANTHROPIC_API_KEY"] = "env-ant";
         _environment["GEMINI_API_KEY"] = "env-key";
         _environment["GITHUB_TOKEN"] = "env-token";
 
         var config = Load();
 
+        Assert.Equal("env-ant", config.AnthropicApiKey);
         Assert.Equal("env-key", config.GeminiApiKey);
         Assert.Equal("env-token", config.GitHubToken);
     }
@@ -88,10 +90,17 @@ public sealed class ConfigLoaderTests : IDisposable
     [Fact]
     public void Template_placeholders_count_as_no_key()
     {
-        WriteConfig("""{ "gemini_api_key": "YOUR-GEMINI-KEY-HERE", "github_token": "YOUR-GITHUB-TOKEN-HERE" }""");
+        WriteConfig("""
+            {
+              "anthropic_api_key": "sk-ant-YOUR-KEY-HERE",
+              "gemini_api_key": "YOUR-GEMINI-KEY-HERE",
+              "github_token": "YOUR-GITHUB-TOKEN-HERE"
+            }
+            """);
 
         var config = Load();
 
+        Assert.Null(config.AnthropicApiKey);
         Assert.Null(config.GeminiApiKey);
         Assert.Null(config.GitHubToken);
     }

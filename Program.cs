@@ -114,26 +114,47 @@ internal static class Program
                         $"No Gemini API key. Set GEMINI_API_KEY or gemini_api_key in {ConfigLoader.FileName}.");
                 }
 
-                services.AddSingleton<IPromptBuilder>(new PromptBuilder(PromptBuilder.LoadGuidelines(Console.Error)));
-                services.AddHttpClient<ICodeReviewer, GeminiCodeReviewer>((http, sp) => new GeminiCodeReviewer(
-                        http,
-                        sp.GetRequiredService<IPromptBuilder>(),
-                        config,
-                        Console.Error))
-                    // The timeout covers all attempts together: a review can
-                    // take a minute, and the server may ask to wait up to a
-                    // minute between retries. The default 100 s is too short.
-                    .ConfigureHttpClient(http => http.Timeout = TimeSpan.FromMinutes(5))
-                    .AddHttpMessageHandler(() => new TransientRetryHandler(Console.Error));
+                AddCloudReviewer<GeminiCodeReviewer>(services,
+                    (http, prompt) => new GeminiCodeReviewer(http, prompt, config, Console.Error));
                 break;
 
-            case "claude" or "openai":
+            case "claude":
+                if (config.AnthropicApiKey is null)
+                {
+                    throw new ConfigException(
+                        $"No Anthropic API key. Set ANTHROPIC_API_KEY or anthropic_api_key in {ConfigLoader.FileName}.");
+                }
+
+                AddCloudReviewer<ClaudeCodeReviewer>(services,
+                    (http, prompt) => new ClaudeCodeReviewer(http, prompt, config, Console.Error));
+                break;
+
+            case "openai":
                 throw new ConfigException(
-                    $"Provider '{config.Provider}' isn't implemented yet. Use gemini, or set dry_run to true in {ConfigLoader.FileName}.");
+                    $"Provider '{config.Provider}' isn't implemented yet. Use gemini or claude, or set dry_run to true in {ConfigLoader.FileName}.");
 
             default:
                 throw new ConfigException(
                     $"Unknown provider '{config.Provider}'. Use claude, openai or gemini.");
         }
+    }
+
+    /// <summary>
+    /// Registers the prompt builder and an HTTP-backed reviewer with the
+    /// same timeout and retry policy Gemini and Claude both need.
+    /// </summary>
+    private static void AddCloudReviewer<TReviewer>(
+        IServiceCollection services,
+        Func<HttpClient, IPromptBuilder, TReviewer> create)
+        where TReviewer : class, ICodeReviewer
+    {
+        services.AddSingleton<IPromptBuilder>(new PromptBuilder(PromptBuilder.LoadGuidelines(Console.Error)));
+        services.AddHttpClient<ICodeReviewer, TReviewer>((http, sp) =>
+                create(http, sp.GetRequiredService<IPromptBuilder>()))
+            // The timeout covers all attempts together: a review can
+            // take a minute, and the server may ask to wait up to a
+            // minute between retries. The default 100 s is too short.
+            .ConfigureHttpClient(http => http.Timeout = TimeSpan.FromMinutes(5))
+            .AddHttpMessageHandler(() => new TransientRetryHandler(Console.Error));
     }
 }
