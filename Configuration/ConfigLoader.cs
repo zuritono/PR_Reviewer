@@ -58,6 +58,8 @@ public static class ConfigLoader
         // the masked placeholders from config.json.template count as no key.
         config = config with
         {
+            AnthropicApiKey = RealKeyOrNull(environment("ANTHROPIC_API_KEY"))
+                              ?? RealKeyOrNull(config.AnthropicApiKey),
             GeminiApiKey = RealKeyOrNull(environment("GEMINI_API_KEY"))
                            ?? RealKeyOrNull(config.GeminiApiKey),
             GitHubToken = RealKeyOrNull(environment("GITHUB_TOKEN"))
@@ -79,10 +81,11 @@ public static class ConfigLoader
     }
 
     /// <summary>
-    /// Null for an empty value or a template placeholder ("YOUR-...").
+    /// Null for an empty value or a template placeholder ("YOUR-..."),
+    /// including values like sk-ant-YOUR-KEY-HERE.
     /// </summary>
     private static string? RealKeyOrNull(string? key) =>
-        string.IsNullOrWhiteSpace(key) || key.StartsWith("YOUR-", StringComparison.OrdinalIgnoreCase)
+        string.IsNullOrWhiteSpace(key) || key.Contains("YOUR-", StringComparison.OrdinalIgnoreCase)
             ? null
             : key.Trim();
 }

@@ -21,6 +21,9 @@ public record AppConfig
     [JsonPropertyName("dry_run")]
     public bool DryRun { get; init; } = true;
 
+    [JsonPropertyName("anthropic_api_key")]
+    public string? AnthropicApiKey { get; init; }
+
     [JsonPropertyName("gemini_api_key")]
     public string? GeminiApiKey { get; init; }
 
